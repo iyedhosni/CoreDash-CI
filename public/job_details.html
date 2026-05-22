@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Job Details</title>
+    <link rel="stylesheet" href="assets/css/job_detailes.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="assets/css/styles.css">
+       <style>
+  /* Base Theme Variables */
+  :root {
+    /* Light Theme */
+    --color-primary: #2563eb;
+    --color-primary-hover: #1d4ed8;
+    --color-text: #1e293b;
+    --color-text-secondary: #64748b;
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-success: #16a34a;
+    --color-warning: #d97706;
+    --color-error: #dc2626;
+    --color-icon: #475569;
+
+    /* Component Colors */
+    --color-sidebar-bg: #f1f5f9;
+    --color-card-bg: #ffffff;
+    --color-modal-bg: #ffffff;
+    --color-input-bg: #ffffff;
+  }
+
+  .dark {
+    /* Dark Theme */
+    --color-primary: #3b82f6;
+    --color-primary-hover: #2563eb;
+    --color-text: #e2e8f0;
+    --color-text-secondary: #94a3b8;
+    --color-bg: #1e293b;
+    --color-bg-secondary: #0f172a;
+    --color-border: #334155;
+    --color-success: #22c55e;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+    --color-icon: #cbd5e1;
+
+    /* Component Colors */
+    --color-sidebar-bg: #0f172a;
+    --color-card-bg: #1e293b;
+    --color-modal-bg: #1e293b;
+    --color-input-bg: #334155;
+  }
+
+  /* Base Styles */
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  /* Sidebar Styles */
+  .sidebar {
+    background-color: var(--color-sidebar-bg);
+    border-right: 1px solid var(--color-border);
+  }
+
+  .sidebar-header h2,
+  .nav-link {
+    color: var(--color-text);
+  }
+
+  .nav-link:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  /* Main Content Styles */
+  .main-content {
+    background-color: var(--color-bg);
+  }
+
+  .job-title h1,
+  .section-title {
+    color: var(--color-text);
+  }
+
+  /* Card/Section Styles */
+  .section {
+    background-color: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+  }
+
+  /* Button Styles */
+  .btn {
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-primary-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-outline {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .btn-outline:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  /* Status Badge */
+  .status-badge {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text);
+  }
+
+  /* Build List Items */
+  .build-item {
+    background-color: var(--color-card-bg);
+    border-color: var(--color-border);
+  }
+
+  .build-item:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  /* Modal Styles */
+  .modal-content {
+    background-color: var(--color-modal-bg);
+    border-color: var(--color-border);
+  }
+
+  .modal-title {
+    color: var(--color-text);
+  }
+
+  /* Form Controls */
+  .form-control {
+    background-color: var(--color-input-bg);
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+/* Container for script editor */
+/* Container for script editor */
+.script-container {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  font-family: monospace;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  height: 200px;
+  background-color: var(--color-input-bg, #ffffff);
+}
+
+/* Line numbers section */
+.script-line-numbers {
+  background-color: var(--color-sidebar-bg, #f1f5f9);
+  border-right: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-secondary, #94a3b8);
+  text-align: right;
+  user-select: none;
+  padding: 0.75rem 0.5rem 0.75rem 0.25rem;
+  line-height: 1.5;
+  width: 3rem; /* ✅ Fixed width */
+  white-space: pre;
+  font-family: monospace;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Textarea */
+.script-textarea {
+  flex: 1;
+  font-family: monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 0.75rem;
+  background-color: transparent;
+  color: var(--color-text, #1e293b);
+  height: 100%;
+  /* ✅ REMOVE width: 100% to prevent overlap */
+  overflow: auto;
+  white-space: pre;
+  box-sizing: border-box;
+  margin-left: 0;
+}
+
+/* Optional override */
+.form-control.script-textarea {
+  border: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0.75rem !important;
+  margin-left: 40px;
+}
+
+/* Dark mode */
+.dark .script-line-numbers {
+  background-color: #1e293b;
+  border-right-color: #334155;
+  color: #334155;
+  padding-top: 12px;
+  line-height: 1.5;
+  margin-bottom: 2px;
+}
+
+.dark .script-textarea {
+  color: #f8fafc;
+  background-color: transparent;
+}
+  /* Empty State Styles */
+  .empty-state {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text);
+  }
+
+  .empty-state-icon {
+    color: var(--color-icon);
+  }
+
+  .empty-state-title {
+    color: var(--color-text);
+  }
+
+  .empty-state-description {
+    color: var(--color-text-secondary);
+  }
+
+  /* Table Styles */
+  td,
+  th {
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+
+  /* Status Colors */
+  .status-success {
+    color: var(--color-success);
+  }
+
+  .status-warning {
+    color: var(--color-warning);
+  }
+
+  .status-error {
+    color: var(--color-error);
+  }
+
+  /* Retry Button */
+  .retry-btn {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  .retry-btn:hover {
+    background-color: var(--color-primary-hover);
+    transform: translateY(-1px);
+  }
+
+  /* Toast Notification */
+  .toast {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+
+  /* Additional Dark Mode Overrides for Build Elements */
+  .dark .build-time,
+  .dark .build-duration,
+  .dark .timestamp {
+    color: #6aabec !important;
+  }
+
+  .dark .build-card,
+  .dark .build-item,
+  .dark .build-list > div {
+    background-color: #333f4b !important;
+    border-color: #3e4d5b !important;
+  }
+
+  .dark .build-card:hover,
+  .dark .build-item:hover,
+  .dark .build-list > div:hover {
+    background-color: #3a4754 !important;
+  }
+
+  .dark .build-card,
+  .dark .build-item {
+    color: #e2e8f0 !important;
+  }
+
+  .dark .build-card .status-badge,
+  .dark .build-item .status-badge {
+    background-color: #2a3541 !important;
+    color: #a8b6c8 !important;
+  }
+</style>
+
+
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Jenkins</h2>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link" id="nav-repo">
+                    <span class="nav-icon"><i class="fas fa-code-branch"></i></span>
+                    <span>Repository</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" id="nav-build">
+                    <span class="nav-icon"><i class="fas fa-play"></i></span>
+                    <span>Build Now</span>
+                </a>
+            </li>
+            <li class="nav-item" id="nav-stages-item">
+                <a href="#" class="nav-link" id="nav-stages">
+                    <span class="nav-icon"><i class="fas fa-project-diagram"></i></span>
+                    <span>Stages</span>
+                </a>
+            </li>
+            <li class="nav-item" id="nav-hook-item">
+                <a href="#" class="nav-link" id="nav-hook">
+                    <span class="nav-icon"><i class="fab fa-github"></i></span>
+                    <span>GitHub Hook Log</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" id="nav-configure">
+                    <span class="nav-icon"><i class="fas fa-cog"></i></span>
+                    <span>Configure</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" id="nav-rename">
+                    <span class="nav-icon"><i class="fas fa-edit"></i></span>
+                    <span>Rename</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" id="nav-delete">
+                    <span class="nav-icon"><i class="fas fa-trash"></i></span>
+                    <span>Delete</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <div class="job-title">
+                <div class="status-badge" id="status-icon">
+                    <i class="fas fa-ellipsis-h"></i>
+                </div>
+                <h1 class="job-name" id="job-name">Loading...</h1>
+            </div>
+            <div class="job-actions">
+                <button class="btn btn-primary" id="build-now-btn">
+                    <i class="fas fa-play"></i>
+                    <span>Build Now</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="permalink-list" id="permalinks"></div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Recent Builds</h2>
+            </div>
+            <div class="build-list" id="build-list"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="repo-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Repository Information</h3>
+                <button class="modal-close" id="cancel-repo">&times;</button>
+            </div>
+            <div class="modal-body" id="repo-info"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="stages-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Pipeline Stages</h3>
+                <button class="modal-close" id="close-stages">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="stages-container">
+                    <div class="stages-bar" id="stages-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="hook-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">SOON ...</h3>
+                <button class="modal-close" id="cancel-hook">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 2rem;">
+                <div class="hook-status">
+                    <i class="fas fa-exclamation-circle" style="font-size: 4rem; color: #ff9800; margin-bottom: 1.5rem;"></i>
+                    <h3 style="margin-bottom: 1rem;">Feature Not Available Yet</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">This feature is not available for this job.</p>
+                    <audio id="background-music" loop style="display: none;">
+                        <source src="assets/sounds/Elevator Music (Kevin MacLeod) - Gaming Background Music (HD).mp3"type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="config-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Configure Job</h3>
+                <button class="modal-close" id="cancel-config">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="config-form">
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" id="cfg-description">
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="cfg-github-hook" class="checkbox-input">
+                        <label for="cfg-github-hook" class="checkbox-label">Enable GitHub Hook Trigger</label>
+                    </div>
+                    <div class="form-group">
+                        <div class="editor-header">
+                            <label class="form-label">Pipeline Script</label>
+                            <div class="editor-actions">
+                                <button type="button" class="editor-btn" id="cfg-btn-template">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>Load Template</span>
+                                </button>
+                                <button type="button" class="editor-btn" id="cfg-btn-format">
+                                    <i class="fas fa-align-left"></i>
+                                    <span>Format</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="script-container">
+                            <div class="script-line-numbers" id="cfg-line-numbers">1</div>
+                            <textarea class="form-control script-textarea" id="cfg-script" spellcheck="false"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancel-config">Cancel</button>
+                <button class="btn btn-primary" id="save-config-form">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="delete-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Delete Job</h3>
+                <button class="modal-close" id="cancel-delete">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this job? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancel-delete">Cancel</button>
+                <button class="btn btn-primary" id="confirm-delete" style="background-color: var(--error-color);">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="rename-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Rename Job</h3>
+                <button class="modal-close" id="cancel-rename">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">New Job Name</label>
+                    <input type="text" class="form-control" id="rename-input" placeholder="Enter new job name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancel-rename">Cancel</button>
+                <button class="btn btn-primary" id="confirm-rename">Rename</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="build-modal">
+        <div class="modal-content" style="max-width: 90%; height: 90%;">
+            <div class="modal-header">
+                <h3 class="modal-title">Build Details</h3>
+                <button class="modal-close" id="close-build">&times;</button>
+            </div>
+            <div class="modal-body" style="height: calc(100% - 60px); padding: 0;">
+                <iframe id="build-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
+                <div id="iframe-fallback" style="display: none; padding: 1rem;">
+                    <p>Could not load build details directly. <a id="build-external-link" href="#" target="_blank">Open in new tab</a></p>
+                    <button class="btn btn-outline" id="refresh-build">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Retry</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const textarea = document.getElementById('cfg-script');
+  const lineNumbers = document.getElementById('cfg-line-numbers');
+
+  function updateLineNumbers() {
+    const lines = textarea.value.split('\n').length;
+    lineNumbers.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
+  }
+
+  // Sync scroll vertically
+  textarea.addEventListener('scroll', () => {
+    lineNumbers.scrollTop = textarea.scrollTop;
+  });
+
+  // Update lines on input
+  textarea.addEventListener('input', updateLineNumbers);
+
+  // Initial render
+  updateLineNumbers();
+});
+</script>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-icon" id="toast-icon"></div>
+        <div class="toast-message" id="toast-message"></div>
+    </div>
+    <!-- Modal: Build Log -->
+<div class="modal" id="build-log-modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Build Log</h3>
+      <button class="modal-close" id="close-build-log">&times;</button>
+    </div>
+    <div class="modal-body">
+      <pre id="build-log-content" style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Workspace Content -->
+<div class="modal" id="workspace-modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Workspace</h3>
+      <button class="modal-close" id="close-workspace">&times;</button>
+    </div>
+    <div class="modal-body">
+      <pre id="workspace-content" style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;"></pre>
+    </div>
+  </div>
+</div>
+<script>
+function syncTheme() {
+  // 1. First try to get theme from parent iframe
+  try {
+    if (window.parent !== window) {
+      const isParentDark = window.parent.document.documentElement.classList.contains('dark');
+      applyTheme(isParentDark);
+      
+      // Observe parent for theme changes
+      const observer = new MutationObserver(() => {
+        const currentIsDark = window.parent.document.documentElement.classList.contains('dark');
+        applyTheme(currentIsDark);
+      });
+      
+      observer.observe(window.parent.document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+      return;
+    }
+  } catch (e) {
+    console.log('Cannot access parent iframe theme:', e);
+  }
+
+  // 2. Try to get theme from top window if parent access fails
+  try {
+    if (window.top !== window) {
+      const isTopDark = window.top.document.documentElement.classList.contains('dark');
+      applyTheme(isTopDark);
+      
+      const observer = new MutationObserver(() => {
+        const currentIsDark = window.top.document.documentElement.classList.contains('dark');
+        applyTheme(currentIsDark);
+      });
+      
+      observer.observe(window.top.document.documentElement, {
+        attributes: true, 
+        attributeFilter: ['class']
+      });
+      return;
+    }
+  } catch (e) {
+    console.log('Cannot access top window theme:', e);
+  }
+
+  // 3. Fallback to localStorage if iframe access fails
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  applyTheme(savedTheme === 'dark');
+}
+
+function applyTheme(isDark) {
+  document.documentElement.classList.toggle('dark', isDark);
+  document.body.classList.toggle('dark', isDark);
+  
+  // Dispatch event in case other scripts need to know
+  const event = new CustomEvent('themeChanged', { detail: { isDark } });
+  document.dispatchEvent(event);
+}
+
+// Initialize theme sync
+document.addEventListener('DOMContentLoaded', syncTheme);
+</script>
+<script src="assets/js/utils.js"></script>
+    <script src="assets/js/job_details.js"></script>
+</body>
+</html>

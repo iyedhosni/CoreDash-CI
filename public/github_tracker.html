@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Repo Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-light.min.css" media="(prefers-color-scheme: light)">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              600: '#7c3aed',
+              700: '#6d28d9',
+            },
+            dark: {
+              800: '#1e293b',
+              900: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #f9fafb;
+      color: #111827;
+      transition-property: background-color, color;
+      transition-duration: 200ms;
+    }
+    .dark body {
+      background-color: #0f172a;
+      color: #f3f4f6;
+    }
+    .card {
+      background-color: #fff;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      border: 1px solid #e5e7eb;
+    }
+    .dark .card {
+      background-color: #1e293b;
+      border-color: #334155;
+    }
+    .status-badge {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .status-badge:hover {
+      opacity: 0.9;
+    }
+    .status-completed {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .dark .status-completed {
+      background-color: #065f46;
+      color: #bbf7d0;
+    }
+    .status-in-progress {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+    .dark .status-in-progress {
+      background-color: #1e40af;
+      color: #bfdbfe;
+    }
+    .status-on-hold {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    .dark .status-on-hold {
+      background-color: #92400e;
+      color: #fde68a;
+    }
+    .markdown-body {
+      max-width: none;
+    }
+    .markdown-body h1, 
+    .markdown-body h2, 
+    .markdown-body h3 {
+      color: #111827;
+    }
+    .dark .markdown-body h1, 
+    .dark .markdown-body h2, 
+    .dark .markdown-body h3 {
+      color: #fff;
+    }
+    .status-dropdown {
+      display: none;
+    }
+    .detail-tab {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-weight: 500;
+      color: #64748b;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .detail-tab.active {
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+    }
+    .dark .detail-tab.active {
+      color: #60a5fa;
+      border-bottom-color: #60a5fa;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 ">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-code-branch text-3xl text-primary-600"></i>
+        <h1 class="text-2xl font-bold">Repostry Tracker</h1>
+      </div>
+      
+    </header>
+
+    <!-- Main Content -->
+    <main class="space-y-6">
+      <!-- GitHub Token Input -->
+      <section class="card p-4">
+        <h2 class="text-lg font-semibold mb-2">GitHub Authentication</h2>
+        <div class="flex gap-2">
+          <input id="githubToken" type="password" class="flex-1 p-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-600" placeholder="Enter GitHub Personal Access Token">
+          <button onclick="saveToken()" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save</button>
+        </div>
+      </section>
+
+      <!-- Add Repo Section -->
+      <section class="card p-4">
+        <div class="flex flex-col md:flex-row gap-3">
+          <div class="flex-1 relative">
+            <input id="repoUrl" type="text" 
+                   class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+                   placeholder="https://github.com/username/repo">
+            <i class="fas fa-link absolute left-3 top-3.5 text-gray-500"></i>
+          </div>
+          <button onclick="debouncedAddRepository()" 
+                  class="px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+            <i class="fas fa-plus"></i>
+            <span>Add</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap gap-2">
+        <button onclick="filterRepositories('all')" 
+                class="px-3 py-1.5 rounded-lg bg-primary-600 text-white text-sm status-filter">
+          All
+        </button>
+        <button onclick="filterRepositories('Completed')" 
+                class="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-sm status-filter">
+          Completed
+        </button>
+        <button onclick="filterRepositories('In Progress')" 
+                class="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-sm status-filter">
+          In Progress
+        </button>
+        <button onclick="filterRepositories('On Hold')" 
+                class="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-sm status-filter">
+          On Hold
+        </button>
+      </div>
+
+      <!-- Repositories List -->
+      <section>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="repositoriesContainer">
+          <div class="col-span-full text-center py-12 text-gray-500">
+            <i class="fas fa-folder-open text-4xl mb-4"></i>
+            <p>No repositories added yet</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Repository Modal -->
+  <div id="repoModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 opacity-0 pointer-events-none transition-opacity">
+    <div class="modal-content bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-95">
+      <div class="modal-header flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="modal-title text-2xl font-bold flex items-center gap-2">
+          <i class="fab fa-github"></i>
+          <span id="modalRepoTitle">Repository Details</span>
+        </h2>
+        <button class="modal-close p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="closeModal()">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="modal-body overflow-auto" style="max-height: calc(90vh - 120px)">
+        <div class="detail-tabs flex border-b border-gray-200 dark:border-gray-700 px-6">
+          <div class="detail-tab active py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('overview')">
+            <i class="fas fa-info-circle mr-2"></i> Overview
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('files')">
+            <i class="fas fa-folder-open mr-2"></i> Files
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('commits')">
+            <i class="fas fa-code-commit mr-2"></i> Commits
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('contributors')">
+            <i class="fas fa-users mr-2"></i> Contributors
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('analytics')">
+            <i class="fas fa-chart-bar mr-2"></i> Analytics
+          </div>
+        </div>
+        <div id="overviewTab" class="detail-tab-content active p-6"> 
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-info-circle text-[var(--primary)]"></i> Repository Info
+            </h3>
+            <div id="repoInfoContent" class="space-y-3"></div>
+          </div>
+        </div>
+        <div id="filesTab" class="detail-tab-content p-6 hidden">
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-folder-open text-[var(--primary)]"></i> File Explorer
+            </h3>
+            <div id="fileBreadcrumb" class="text-sm text-gray-500 dark:text-gray-400 mb-4"></div>
+            <div id="fileExplorerContent" class="file-explorer"></div>
+          </div>
+        </div>
+        <div id="commitsTab" class="detail-tab-content p-6 hidden">
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-code-commit text-[var(--primary)]"></i> Recent Commits
+            </h3>
+            <div id="commitsContent" class="space-y-4"></div>
+          </div>
+        </div>
+        <div id="contributorsTab" class="detail-tab-content p-6 hidden">
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-users text-[var(--primary)]"></i> Contributors
+            </h3>
+            <div id="contributorsContent" class="flex flex-wrap gap-4"></div>
+          </div>
+        </div>
+        <div id="analyticsTab" class="detail-tab-content p-6 hidden">
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-chart-bar text-[var(--primary)]"></i> Analytics
+            </h3>
+            <div id="analyticsContent" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+        <button class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" onclick="closeModal()">
+          Close
+        </button>
+        <a id="repoViewOnGitHub" href="#" target="_blank" class="px-4 py-2 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white transition-colors">
+          <i class="fab fa-github mr-2"></i> View on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Modal -->
+  <div id="fileModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 opacity-0 pointer-events-none transition-opacity">
+    <div class="modal-content bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-95">
+      <div class="modal-header flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="modal-title text-xl font-bold flex items-center gap-2">
+          <i class="fas fa-file-code mr-2"></i>
+          <span id="modalFileTitle">File Content</span>
+        </h2>
+        <button class="modal-close p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="closeModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body overflow-auto p-0" style="max-height: calc(90vh - 120px)">
+        <div class="p-4 bg-gray-50 dark:bg-gray-700/50">
+          <div id="fileBreadcrumb" class="text-sm text-gray-500 dark:text-gray-400"></div>
+        </div>
+        <div class="file-content-container code-explorer">
+          <pre id="fileContent" class="hljs p-4 m-0"></pre>
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <div class="text-sm text-gray-500 dark:text-gray-400" id="fileInfo"></div>
+        <div class="flex gap-2">
+          <button onclick="copyFileContent()" class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+            Copy
+          </button>
+          <button onclick="downloadFile()" class="px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors">
+            Download
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity">
+    <div class="card p-6 max-w-xs text-center">
+      <div class="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <h3 id="loadingTitle" class="font-medium mb-1">Loading</h3>
+      <p id="loadingMessage" class="text-sm text-gray-600 dark:text-gray-400">Please wait...</p>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 z-50 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transform translate-y-10 opacity-0 transition-all">
+    <div id="toastIcon"></div>
+    <div>
+      <div id="toastTitle" class="font-medium text-sm">Notification</div>
+      <div id="toastMessage" class="text-xs">Message</div>
+    </div>
+    <button onclick="hideToast()" class="ml-2">
+      <i class="fas fa-times text-xs"></i>
+    </button>
+  </div>
+ 
+  <script>
+    // Configuration with environment variable fallback
+    const config = {
+      API_BASE: 'http://localhost:3000/api/github-tracker',
+      GITHUB_API: 'http://localhost:3000/api/github'
+    };
+
+    // Global state
+    const state = {
+      currentRepo: null,
+      currentFile: null,
+      repositories: [],
+      loading: false,
+      activeFilter: 'all'
+    };
+
+    // Initialize the application
+    function init() {
+      loadTrackedRepositories();
+      hljs.highlightAll();
+    }
+
+    // Theme management
+    function syncTheme() {
+        try {
+            if (window.parent !== window) {
+                const update = () => {
+                    const isDark = window.parent.document.documentElement.classList.contains('dark');
+                    document.documentElement.classList.toggle('dark', isDark);
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                };
+                update();
+                const observer = new MutationObserver(update);
+                observer.observe(window.parent.document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+            } else {
+                // Fallback to local storage or system preference
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark' || 
+                    (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            }
+        } catch (e) {
+            console.warn('Could not access parent theme due to CORS', e);
+            // Fallback to local storage or system preference
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark' || 
+                (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    }
+
+
+    // Call syncTheme during initialization
+    document.addEventListener('DOMContentLoaded', () => {
+        syncTheme();
+    })
+
+    // Modal management
+    function showModal(modalId) {
+      const modal = document.getElementById(modalId);
+      modal.style.opacity = '1';
+      modal.style.pointerEvents = 'auto';
+      modal.querySelector('.modal-content').style.transform = 'scale(1)';
+    }
+
+    function closeModal() {
+      ['repoModal', 'fileModal'].forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        modal.style.opacity = '0';
+        modal.style.pointerEvents = 'none';
+        modal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+      });
+    }
+
+    // Loading management
+    function showLoading(title = 'Loading', message = 'Please wait...') {
+      document.getElementById('loadingTitle').textContent = title;
+      document.getElementById('loadingMessage').textContent = message;
+      document.getElementById('loadingOverlay').style.opacity = '1';
+      document.getElementById('loadingOverlay').style.pointerEvents = 'auto';
+      state.loading = true;
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.opacity = '0';
+      document.getElementById('loadingOverlay').style.pointerEvents = 'none';
+      state.loading = false;
+    }
+
+    // Toast notifications
+    function showToast(title, message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastIcon = document.getElementById('toastIcon');
+      
+      let iconClass = 'fas fa-info-circle text-blue-400';
+      if (type === 'success') iconClass = 'fas fa-check-circle text-green-400';
+      if (type === 'error') iconClass = 'fas fa-exclamation-circle text-red-400';
+      
+      toastIcon.className = iconClass;
+      document.getElementById('toastTitle').textContent = title;
+      document.getElementById('toastMessage').textContent = message;
+      
+      toast.style.transform = 'translateY(0)';
+      toast.style.opacity = '1';
+      
+      setTimeout(hideToast, 5000);
+    }
+
+    function hideToast() {
+      const toast = document.getElementById('toast');
+      toast.style.transform = 'translateY(10px)';
+      toast.style.opacity = '0';
+    }
+
+    // Authentication
+    function saveToken() {
+      const token = document.getElementById('githubToken').value.trim();
+      if (token) {
+        localStorage.setItem('token', token);
+        showToast('Success', 'GitHub token saved', 'success');
+        document.getElementById('githubToken').value = '';
+      } else {
+        showToast('Error', 'Please enter a valid token', 'error');
+      }
+    }
+
+    // Debounce utility
+    function debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    // Repository management
+    const debouncedAddRepository = debounce(async function addRepository() {
+      const input = document.getElementById('repoUrl').value.trim();
+      if (!input) return showToast('Error', 'Please enter a repository URL.', 'error');
+      
+      const repoMatch = input.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+      if (!repoMatch) return showToast('Error', 'Invalid GitHub repository URL', 'error');
+      
+      const [, owner, repo] = repoMatch;
+      const repoId = `${owner}/${repo}`;
+      
+      if (state.repositories.some(r => r.link.includes(repoId))) {
+        return showToast('Info', 'This repository is already in your list', 'info');
+      }
+      
+      showLoading('Adding repository', `Fetching details for ${repoId}...`);
+      
+      try {
+        const repoData = await fetchGitHubRepo(owner, repo);
+        
+        const response = await fetch(config.API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: repoData.name,
+            link: repoData.html_url,
+            status: 'In Progress'
+          })
+        });
+        
+        if (!response.ok) throw new Error('Failed to save repository');
+        
+        const savedRepo = await response.json();
+        
+        const trackedRepo = {
+          id: savedRepo.id,
+          name: repoData.name,
+          link: repoData.html_url,
+          status: 'In Progress',
+          owner: { login: owner },
+          ...repoData
+        };
+        state.repositories.push(trackedRepo);
+        renderRepositories();
+        document.getElementById('repoUrl').value = '';
+        hideLoading();
+        showToast('Success', `Added ${repoId} to your tracker`, 'success');
+      } catch (error) {
+        hideLoading();
+        showToast('Error', `Failed to add repository: ${error.message}`, 'error');
+      }
+    }, 500);
+
+    function filterRepositories(filter) {
+      state.activeFilter = filter;
+      renderRepositories();
+      
+      document.querySelectorAll('.status-filter').forEach(btn => {
+        btn.classList.remove('bg-primary-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+      });
+      
+      const filterButtons = document.querySelectorAll('.status-filter');
+      if (filter === 'all') filterButtons[0].classList.add('bg-primary-600', 'text-white');
+      else if (filter === 'Completed') filterButtons[1].classList.add('bg-primary-600', 'text-white');
+      else if (filter === 'In Progress') filterButtons[2].classList.add('bg-primary-600', 'text-white');
+      else if (filter === 'On Hold') filterButtons[3].classList.add('bg-primary-600', 'text-white');
+    }
+
+    function renderRepositories() {
+      const container = document.getElementById('repositoriesContainer');
+
+      if (state.repositories.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-12 text-gray-500">
+            <i class="fas fa-folder-open text-4xl mb-4"></i>
+            <p>No repositories added yet</p>
+          </div>
+        `;
+        return;
+      }
+
+      let filteredRepos = state.repositories;
+      if (state.activeFilter !== 'all') {
+        filteredRepos = state.repositories.filter(repo => repo.status === state.activeFilter);
+      }
+
+      if (filteredRepos.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-12 text-gray-500">
+            <i class="fas fa-folder-open text-4xl mb-4"></i>
+            <p>No repositories match the current filter</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      filteredRepos.forEach(repo => {
+        const card = document.createElement('div');
+        card.className = 'card p-4 hover:shadow-md transition-shadow';
+        card.innerHTML = `
+          <div class="flex justify-between items-start mb-2">
+            <h3 class="font-medium">
+              <a href="#" class="hover:underline">${repo.name}</a>
+            </h3>
+            <span class="text-xs px-2 py-1 rounded-full ${repo.private ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200' : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'}">
+              ${repo.private ? 'Private' : 'Public'}
+            </span>
+          </div>
+          
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+            ${repo.description || 'No description provided'}
+          </p>
+          
+          <div class="flex items-center justify-between text-sm">
+            <div class="flex items-center gap-3">
+              <span class="flex items-center gap-1 text-gray-600 dark:text-gray-300">
+                <i class="fas fa-star text-yellow-400"></i>
+                ${abbreviateNumber(repo.stargazers_count)}
+              </span>
+              <span class="flex items-center gap-1 text-gray-600 dark:text-gray-300">
+                <i class="fas fa-code-branch text-blue-400"></i>
+                ${abbreviateNumber(repo.forks_count)}
+              </span>
+              <div class="relative">
+                <span class="status-badge status-${repo.status.toLowerCase().replace(' ', '-')}" 
+                      onclick="toggleStatusDropdown(this)">
+                  ${repo.status}
+                  <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                </span>
+                <div class="status-dropdown absolute z-10 hidden mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
+                  <div class="py-1">
+                    <div class="px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" 
+                         onclick="updateRepoStatus('${repo.name}', 'Completed')">Completed</div>
+                    <div class="px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" 
+                         onclick="updateRepoStatus('${repo.name}', 'In Progress')">In Progress</div>
+                    <div class="px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" 
+                         onclick="updateRepoStatus('${repo.name}', 'On Hold')">On Hold</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <a href="${repo.link}" target="_blank" class="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                <i class="fas fa-external-link-alt text-sm"></i>
+              </a>
+              <button onclick="event.stopPropagation(); removeRepository('${repo.name}')" 
+                      class="p-1.5 rounded-full hover:bg-red-200 dark:hover:bg-red-800 text-red-600 dark:text-red-300">
+                <i class="fas fa-trash-alt text-sm"></i>
+              </button>
+            </div>
+          </div>
+        `;
+
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('a[target="_blank"]') || 
+              e.target.closest('button') || 
+              e.target.closest('.status-badge') ||
+              e.target.closest('.status-dropdown')) {
+            return;
+          }
+          loadRepoDetails(repo.id);
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    async function removeRepository(repoName) {
+      if (confirm('Are you sure you want to remove this repository from your tracker?')) {
+        showLoading('Removing', 'Deleting repository from tracker...');
+        
+        try {
+          const response = await fetch(`${config.API_BASE}/${repoName}`, { 
+            method: 'DELETE' 
+          });
+          
+          if (!response.ok) throw new Error('Failed to delete repository');
+          
+          state.repositories = state.repositories.filter(repo => repo.name !== repoName);
+          renderRepositories();
+          hideLoading();
+          showToast('Removed', 'Repository removed from your tracker', 'success');
+        } catch (error) {
+          hideLoading();
+          showToast('Error', `Failed to remove repository: ${error.message}`, 'error');
+        }
+      }
+    }
+
+    async function updateRepoStatus(repoName, status) {
+      showLoading('Updating', 'Changing repository status...'); 
+      
+      try {
+        const response = await fetch(`${config.API_BASE}/${encodeURIComponent(repoName)}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to update status');
+        }
+        
+        const updatedRepo = await response.json();
+        const repo = state.repositories.find(r => r.name === repoName);
+        if (repo) {
+          Object.assign(repo, updatedRepo);
+          renderRepositories();
+        }
+        hideLoading();
+        showToast('Status updated', `Repository status set to ${status}`, 'success');
+      } catch (error) {
+        hideLoading();
+        showToast('Error', `Failed to update status: ${error.message}`, 'error');
+      }
+    }
+
+    function toggleStatusDropdown(element) {
+      document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+        if (dropdown !== element.nextElementSibling) {
+          dropdown.style.display = 'none';
+        }
+      });
+      
+      const dropdown = element.nextElementSibling;
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+
+    document.addEventListener('click', function(event) {
+      if (!event.target.closest('.status-badge') && !event.target.closest('.status-dropdown')) {
+        document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+          dropdown.style.display = 'none';
+        });
+      }
+    });
+
+    // Data loading
+    async function loadTrackedRepositories() {
+      showLoading('Loading', 'Fetching your tracked repositories...');
+      
+      try {
+        const response = await fetch(config.API_BASE);
+        if (!response.ok) throw new Error('Failed to load repositories');
+        
+        const repositories = await response.json();
+        
+        const reposWithData = await Promise.all(repositories.map(async repo => {
+          try {
+            const match = repo.link.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+            if (!match) return repo;
+            
+            const [, owner, repoName] = match;
+            const githubData = await fetchGitHubRepo(owner, repoName);
+            return { ...repo, ...githubData, owner: { login: owner } };
+          } catch (error) {
+            console.error(`Failed to fetch GitHub data for ${repo.link}:`, error);
+            return repo;
+          }
+        }));
+        
+        state.repositories = reposWithData;
+        renderRepositories();
+        hideLoading();
+      } catch (error) {
+        hideLoading();
+        showToast('Error', `Failed to load repositories: ${error.message}`, 'error');
+      }
+    }
+
+    // API calls
+    async function fetchGitHubRepo(owner, repo) {
+      const headers = getAuthHeaders();
+      const response = await fetch(`${config.GITHUB_API}/repos/${owner}/${repo}`, { headers });
+      if (!response.ok) throw new Error(response.statusText);
+      return await response.json();
+    }
+
+    async function fetchRepoContents(owner, repo, path = '') {
+      const response = await fetch(`${config.GITHUB_API}/repos/${owner}/${repo}/contents/${path}`, {
+        headers: getAuthHeaders()
+      });
+      if (!response.ok) throw new Error(response.statusText);
+      return await response.json();
+    }
+
+    async function fetchRepoCommits(owner, repo) {
+      const response = await fetch(`${config.GITHUB_API}/repos/${owner}/${repo}/commits?per_page=10`, {
+        headers: getAuthHeaders()
+      });
+      if (!response.ok) throw new Error(response.statusText);
+      return await response.json();
+    }
+
+    async function fetchRepoContributors(owner, repo) {
+      const response = await fetch(`${config.GITHUB_API}/repos/${owner}/${repo}/contributors`, {
+        headers: getAuthHeaders()
+      });
+      if (!response.ok) throw new Error(response.statusText);
+      return await response.json();
+    }
+
+    async function fetchRepoLanguages(owner, repo) {
+      const response = await fetch(`${config.GITHUB_API}/repos/${owner}/${repo}/languages`, {
+        headers: getAuthHeaders()
+      });
+      if (!response.ok) throw new Error(response.statusText);
+      return await response.json();
+    }
+
+    function getAuthHeaders() {
+      const token = localStorage.getItem('accessToken');
+      return token
+        ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        : { 'Content-Type': 'application/json' };
+    }
+
+    // Repository details
+    async function loadRepoDetails(repoId) {
+      const repo = state.repositories.find(r => r.id === repoId);
+      if (!repo) return;
+
+      state.currentRepo = repo;
+      showLoading('Loading repository', `Fetching details for ${repo.name}...`);
+
+      try {
+        const match = repo.link.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+        if (!match) throw new Error('Invalid repository URL format');
+
+        const [_, owner, repoName] = match;
+
+        const [contents, commits, contributors, languages] = await Promise.all([
+          fetchRepoContents(owner, repoName),
+          fetchRepoCommits(owner, repoName),
+          fetchRepoContributors(owner, repoName),
+          fetchRepoLanguages(owner, repoName)
+        ]);
+
+        state.currentRepo.contents = contents;
+        state.currentRepo.commits = commits;
+        state.currentRepo.contributors = contributors;
+        state.currentRepo.languages = languages;
+
+        renderRepoDetails(repo);
+        hideLoading();
+      } catch (error) {
+        hideLoading();
+        showToast('Error', `Failed to load repository details: ${error.message}`, 'error');
+      }
+    }
+
+    function renderRepoDetails(repo) {
+      document.getElementById('modalRepoTitle').textContent = `${repo.owner.login}/${repo.name}`;
+      document.getElementById('repoViewOnGitHub').href = repo.link;
+      
+      // Overview Tab
+      const repoInfoContent = document.getElementById('repoInfoContent');
+      repoInfoContent.innerHTML = `
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Owner</div>
+            <div class="font-medium">${repo.owner.login}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Created</div>
+            <div class="font-medium">${formatDate(repo.created_at)}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Last Updated</div>
+            <div class="font-medium">${formatDate(repo.updated_at)}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">License</div>
+            <div class="font-medium">${repo.license?.name || 'None'}</div>
+          </div>
+          <div class="col-span-2">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Description</div>
+            <div class="font-medium">${repo.description || 'No description provided'}</div>
+          </div>
+          <div class="col-span-2">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Homepage</div>
+            <div class="font-medium">
+              ${repo.homepage ? `<a href="${repo.homepage}" target="_blank" class="text-primary-600 hover:underline">${repo.homepage}</a>` : 'None'}
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="stat-card bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Stars</div>
+            <div class="text-xl font-bold">${abbreviateNumber(repo.stargazers_count)}</div>
+          </div>
+          <div class="stat-card bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Forks</div>
+            <div class="text-xl font-bold">${abbreviateNumber(repo.forks_count)}</div>
+          </div>
+          <div class="stat-card bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Watchers</div>
+            <div class="text-xl font-bold">${abbreviateNumber(repo.watchers_count)}</div>
+          </div>
+          <div class="stat-card bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Issues</div>
+            <div class="text-xl font-bold">${abbreviateNumber(repo.open_issues_count)}</div>
+          </div>
+        </div>
+      `;
+      
+      // Files Tab
+      if (repo.contents) {
+        renderFileExplorer(repo.owner.login, repo.name, repo.contents, '');
+      }
+      
+      // Commits Tab
+      if (repo.commits) {
+        const commitsContent = document.getElementById('commitsContent');
+        commitsContent.innerHTML = repo.commits.map(commit => `
+          <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <img src="${commit.author?.avatar_url || 'https://via.placeholder.com/40'}" 
+                 alt="${commit.commit.author.name}" 
+                 class="w-10 h-10 rounded-full">
+            <div class="flex-1">
+              <div class="flex justify-between items-center mb-1">
+                <div class="font-medium">${commit.commit.author.name}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  ${formatRelativeTime(commit.commit.author.date)}
+                </div>
+              </div>
+              <div class="text-sm mb-2">${commit.commit.message.split('\n')[0]}</div>
+              <a href="${commit.html_url}" target="_blank" 
+                 class="text-xs text-primary-600 hover:underline">
+                <i class="fas fa-code-commit"></i> ${commit.sha.substring(0, 7)}
+              </a>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      // Contributors Tab
+      if (repo.contributors) {
+        const contributorsContent = document.getElementById('contributorsContent');
+        contributorsContent.innerHTML = repo.contributors.map(contributor => `
+          <div class="flex flex-col items-center text-center p-3">
+            <a href="${contributor.html_url}" target="_blank" 
+               class="relative group">
+              <img src="${contributor.avatar_url}" 
+                   alt="${contributor.login}" 
+                   class="w-16 h-16 rounded-full group-hover:ring-2 group-hover:ring-primary-600 transition-all">
+              <div class="absolute inset-0 rounded-full bg-primary-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            </a>
+            <div class="mt-2">
+              <a href="${contributor.html_url}" target="_blank" 
+                 class="font-medium text-primary-600 hover:underline">
+                ${contributor.login}
+              </a>
+              <div class="text-xs text-gray-500 dark:text-gray-400">
+                ${contributor.contributions} commits
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      // Analytics Tab
+      if (repo.languages) {
+        const analyticsContent = document.getElementById('analyticsContent');
+        analyticsContent.innerHTML = `
+          <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl">
+            <h3 class="text-lg font-semibold mb-3">Language Breakdown</h3>
+            <canvas id="languageChart" class="max-w-md mx-auto"></canvas>
+          </div>
+        `;
+        const ctx = document.getElementById('languageChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: Object.keys(repo.languages),
+            datasets: [{
+              data: Object.values(repo.languages),
+              backgroundColor: Object.keys(repo.languages).map(lang => getLanguageColor(lang)),
+              borderColor: '#ffffff',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'top', labels: { color: '#111827', usePointStyle: true } },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                    return `${context.label}: ${percentage}%`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      showModal('repoModal');
+    }
+
+    async function loadRepoContents(owner, repo, path = '') {
+      const fileExplorerContent = document.getElementById('fileExplorerContent');
+      const breadcrumb = document.getElementById('fileBreadcrumb');
+      
+      showLoading('Loading contents', `Fetching files for ${owner}/${repo}...`);
+      
+      try {
+        const contents = await fetchRepoContents(owner, repo, path);
+        renderFileExplorer(owner, repo, contents, path);
+        hideLoading();
+      } catch (error) {
+        hideLoading();
+        showToast('Error', `Failed to load repository contents: ${error.message}`, 'error');
+      }
+    }
+
+    function renderFileExplorer(owner, repo, contents, path) {
+      const fileExplorerContent = document.getElementById('fileExplorerContent');
+      const breadcrumb = document.getElementById('fileBreadcrumb');
+      
+      const pathParts = path.split('/').filter(p => p);
+      breadcrumb.innerHTML = `
+        <a href="#" onclick="loadRepoContents('${owner}', '${repo}', ''); return false;" class="text-primary-600 hover:underline">root</a>
+        ${pathParts.map((part, i) => {
+          const currentPath = pathParts.slice(0, i + 1).join('/');
+          return `
+            <span class="text-gray-500 dark:text-gray-400">/</span>
+            <a href="#" onclick="loadRepoContents('${owner}', '${repo}', '${currentPath}'); return false;" class="text-primary-600 hover:underline">${part}</a>
+          `;
+        }).join('')}
+      `;
+      
+      fileExplorerContent.innerHTML = `
+        <ul class="file-tree space-y-2">
+          ${contents.map(item => {
+            if (item.type === 'dir') {
+              return `
+                <li class="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-lg cursor-pointer" 
+                    onclick="loadRepoContents('${owner}', '${repo}', '${path ? `${path}/` : ''}${item.name}')">
+                  <i class="fas fa-folder text-yellow-400"></i>
+                  <span>${item.name}</span>
+                </li>
+              `;
+            } else {
+              return `
+                <li class="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-lg cursor-pointer" 
+                    onclick="loadFileContent('${owner}', '${repo}', '${path ? `${path}/` : ''}${item.name}', '${item.download_url}')">
+                  <i class="fas fa-file text-gray-400"></i>
+                  <span>${item.name}</span>
+                </li>
+              `;
+            }
+          }).join('')}
+        </ul>
+      `;
+    }
+
+    async function loadFileContent(owner, repo, path, downloadUrl) {
+      showLoading('Loading file', `Fetching ${path}...`);
+      
+      try {
+        const response = await fetch(downloadUrl);
+        if (!response.ok) throw new Error(response.statusText);
+        const content = await response.text();
+        
+        document.getElementById('modalFileTitle').textContent = path.split('/').pop();
+        document.getElementById('fileInfo').textContent = `${path} • ${formatBytes(content.length)}`;
+        document.getElementById('fileContent').textContent = content;
+        hljs.highlightElement(document.getElementById('fileContent'));
+        
+        const fileBreadcrumb = document.getElementById('fileBreadcrumb');
+        const pathParts = path.split('/').filter(p => p);
+        fileBreadcrumb.innerHTML = `
+          <a href="#" onclick="loadRepoContents('${owner}', '${repo}', ''); return false;" class="text-primary-600 hover:underline">
+            <i class="fas fa-home"></i> root
+          </a>
+          ${pathParts.slice(0, -1).map((part, index) => {
+            const currentPath = pathParts.slice(0, index + 1).join('/');
+            return `
+              <span class="text-gray-500 dark:text-gray-400">/</span>
+              <a href="#" onclick="loadRepoContents('${owner}', '${repo}', '${currentPath}'); return false;" class="text-primary-600 hover:underline">${part}</a>
+            `;
+          }).join('')}
+          <span class="text-gray-500 dark:text-gray-400">/</span>
+          <span>${pathParts[pathParts.length - 1]}</span>
+        `;
+        
+        showModal('fileModal');
+        hideLoading();
+      } catch (error) {
+        hideLoading();
+        showToast('Error', `Failed to load file: ${error.message}`, 'error');
+      }
+    }
+
+    function copyFileContent() {
+      const content = document.getElementById('fileContent').textContent;
+      navigator.clipboard.writeText(content)
+        .then(() => showToast('Success', 'File content copied to clipboard', 'success'))
+        .catch(() => showToast('Error', 'Failed to copy content', 'error'));
+    }
+
+    function downloadFile() {
+      const content = document.getElementById('fileContent').textContent;
+      const filename = document.getElementById('modalFileTitle').textContent;
+      
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Utility functions
+    function getLanguageColor(language) {
+      const colors = {
+        'JavaScript': '#f1e05a',
+        'TypeScript': '#3178c6',
+        'Python': '#3572A5',
+        'Java': '#b07219',
+        'HTML': '#e34c26',
+        'CSS': '#563d7c',
+        'PHP': '#4F5D95',
+        'Ruby': '#701516',
+        'C++': '#f34b7d',
+        'C': '#555555',
+        'Shell': '#89e051',
+        'Swift': '#ffac45',
+        'Kotlin': '#F18E33',
+        'Go': '#00ADD8',
+        'Rust': '#dea584',
+        'Scala': '#c22d40',
+        'Dart': '#00B4AB'
+      };
+      return colors[language] || '#cccccc';
+    }
+
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
+
+    function formatRelativeTime(dateString) {
+      const date = new Date(dateString);
+      const now = new Date();
+      const seconds = Math.floor((now - date) / 1000);
+      
+      const intervals = {
+        year: 31536000,
+        month: 2592000,
+        week: 604800,
+        day: 86400,
+        hour: 3600,
+        minute: 60
+      };
+      
+      for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+        const interval = Math.floor(seconds / secondsInUnit);
+        if (interval >= 1) {
+          return `${interval} ${unit}${interval === 1 ? '' : 's'} ago`;
+        }
+      }
+      return 'just now';
+    }
+
+    function abbreviateNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num.toString();
+    }
+
+    function formatBytes(bytes, decimals = 2) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    async function switchDetailTab(tabName) {
+      document.querySelectorAll('.detail-tab').forEach(tab => {
+        tab.classList.remove('active');
+        tab.classList.add('hover:bg-gray-100', 'dark:hover:bg-gray-700');
+      });
+      document.querySelectorAll('.detail-tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      const activeTab = document.querySelector(`.detail-tab[onclick="switchDetailTab('${tabName}')"]`);
+      activeTab.classList.add('active');
+      activeTab.classList.remove('hover:bg-gray-100', 'dark:hover:bg-gray-700');
+      document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+
+      if (tabName === 'files' && !state.currentRepo.filesFetched) {
+        await loadRepoContents(state.currentRepo.owner.login, state.currentRepo.name);
+        state.currentRepo.filesFetched = true;
+      } else if (tabName === 'commits' && !state.currentRepo.commitsFetched) {
+        state.currentRepo.commits = await fetchRepoCommits(state.currentRepo.owner.login, state.currentRepo.name);
+        renderRepoDetails(state.currentRepo);
+        state.currentRepo.commitsFetched = true;
+      } else if (tabName === 'contributors' && !state.currentRepo.contributorsFetched) {
+        state.currentRepo.contributors = await fetchRepoContributors(state.currentRepo.owner.login, state.currentRepo.name);
+        renderRepoDetails(state.currentRepo);
+        state.currentRepo.contributorsFetched = true;
+      } else if (tabName === 'analytics' && !state.currentRepo.analyticsFetched) {
+        state.currentRepo.languages = await fetchRepoLanguages(state.currentRepo.owner.login, state.currentRepo.name);
+        renderRepoDetails(state.currentRepo);
+        state.currentRepo.analyticsFetched = true;
+      }
+    }
+
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>

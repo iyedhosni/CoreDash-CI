@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kubernetes Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css" />
+  <style>
+    /* Ensure body takes full height and has proper background */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* Add dark mode styles for the dashboard */
+    body {
+      background-color: #f8fafc;
+      color: #1e293b;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    body.dark {
+      background-color: #0f172a;
+      color: #e2e8f0;
+    }
+    
+    /* Update dashboard container */
+    .dashboard-container {
+      min-height: 100vh;
+      padding: 1.5rem;
+      background-color: inherit;
+    }
+    
+    /* Update header styles */
+    .dashboard-header {
+      background-color: inherit;
+      color: inherit;
+    }
+    
+    /* Update card styles */
+    .stat-card {
+      background-color: #ffffff;
+      color: #1e293b;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    .dark .stat-card {
+      background-color: #1e293b;
+      color: #e2e8f0;
+    }
+    
+    /* Update table styles */
+    .pods-table {
+      background-color: #ffffff;
+      color: #1e293b;
+    }
+    
+    .dark .pods-table {
+      background-color: #1e293b;
+      color: #e2e8f0;
+    }
+    
+    .pods-table th,
+    .pods-table td {
+      border-color: #e2e8f0;
+    }
+    
+    .dark .pods-table th,
+    .dark .pods-table td {
+      border-color: #334155;
+    }
+    
+    /* Update empty state */
+    .empty-state {
+      color: #64748b;
+    }
+    
+    .dark .empty-state {
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container" style="padding: 20px;">
+    <header class="dashboard-header" style="margin-bottom: 30px;">
+      <div class="dashboard-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <span>Kubernetes Dashboard</span>
+      </div>
+      <div>
+        <button class="refresh-btn" id="refreshBtn">
+          <span class="icon">⟳</span>
+          <span class="spinner">↻</span>
+          Refresh
+        </button>
+        <button class="theme-toggle"  style="display: none;" id="themeToggle">🌓</button>
+      </div>
+    </header>
+    
+    <div class="stats-container" id="statsContainer" style="margin-bottom: 30px;">
+      <div class="stat-card">
+        <div class="stat-title">Total Pods</div>
+        <div class="stat-value" id="totalPods">-</div>
+        <div class="stat-change">
+          <span id="podsChange">0</span>
+          <span>since last refresh</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Running</div>
+        <div class="stat-value" id="runningPods">-</div>
+        <div class="stat-change positive" id="runningChange">
+          <span>0</span>
+          <span>since last refresh</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Pending</div>
+        <div class="stat-value" id="pendingPods">-</div>
+        <div class="stat-change negative" id="pendingChange">
+          <span>0</span>
+          <span>since last refresh</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Error</div>
+        <div class="stat-value" id="errorPods">-</div>
+        <div class="stat-change negative" id="errorChange">
+          <span>0</span>
+          <span>since last refresh</span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; margin-bottom: 30px; gap: 20px;">
+    <iframe src="https://degrees-griffin-sections-administrators.trycloudflare.com/d-solo/7a18067ce943a40ae25454675c19ff5c/kubernetes-networking-pod?orgId=1&timezone=utc&var-datasource=default&var-cluster=&var-namespace=kube-system&var-pod=coredns-55cb58b774-qqdbz&refresh=10s&theme=light&panelId=1&__feature=dashboardSceneSolo" width="50%" height="300" frameborder="0"></iframe>
+  <iframe src="https://degrees-griffin-sections-administrators.trycloudflare.com/d-solo/7a18067ce943a40ae25454675c19ff5c/kubernetes-networking-pod?orgId=1&timezone=utc&var-datasource=default&var-cluster=&var-namespace=kube-system&var-pod=coredns-55cb58b774-qqdbz&refresh=10s&theme=light&panelId=2&__feature=dashboardSceneSolo" width="50%" height="300" frameborder="0"></iframe>  
+  </div>
+    <div class="pods-table-container" style="margin-bottom: 30px;">
+      <table class="pods-table" id="podsTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Namespace</th>
+            <th>Status</th>
+            <th>CPU Usage</th>
+            <th>Memory Usage</th>
+            <th>Age</th>
+          </tr>
+        </thead>
+        <tbody id="podsTableBody">
+          <tr>
+            <td colspan="6" class="empty-state">
+              <div class="empty-state-icon">📊</div>
+              <h3 class="empty-state-title">No Pods Data</h3>
+              <p class="empty-state-description">Click refresh to load pod information</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-bottom: 30px;">
+      <iframe src="https://degrees-griffin-sections-administrators.trycloudflare.com/d-solo/efa86fd1d0c121a26444b636a3f509a8/kubernetes-compute-resources-cluster?orgId=1&timezone=utc&var-datasource=default&var-cluster=&refresh=10s&theme=light&panelId=7&__feature=dashboardSceneSolo" width="100%" height="300" frameborder="0" style="margin-bottom: 20px;"></iframe>
+      <iframe src="https://degrees-griffin-sections-administrators.trycloudflare.com/d-solo/85a562078cdf77779eaa1add43ccec1e/kubernetes-compute-resources-namespace-pods?orgId=1&from=1747739542253&to=1747743142253&timezone=utc&var-datasource=default&var-cluster=&var-namespace=default&refresh=10s&theme=light&panelId=5&__feature=dashboardSceneSolo" width="100%" height="400px" frameborder="0"></iframe>
+    </div>
+
+  </div>
+
+  <script>
+    // Theme management
+    let currentTheme = 'light';
+    
+    // Function to sync theme with parent
+    function syncTheme() {
+      try {
+        const update = () => {
+          let isDark = false;
+          
+          // Check if we're in an iframe and can access parent
+          if (window.parent !== window) {
+            try {
+              isDark = window.parent.document.documentElement.classList.contains('dark');
+            } catch (e) {
+              console.warn('Could not access parent theme due to CORS, using local theme');
+            }
+          } else {
+            // If not in an iframe, check local storage
+            isDark = localStorage.getItem('theme') === 'dark' || 
+                     (!localStorage.getItem('theme') && 
+                      window.matchMedia('(prefers-color-scheme: dark)').matches);
+          }
+          
+          // Update theme
+          currentTheme = isDark ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', currentTheme);
+          
+          // Toggle dark class on body for CSS
+          if (isDark) {
+            document.body.classList.add('dark');
+          } else {
+            document.body.classList.remove('dark');
+          }
+          
+          // Update iframes with the current theme
+          updateGrafanaIframes();
+        };
+        
+        // Initial update
+        update();
+        
+        // Set up observer for theme changes in parent
+        if (window.parent !== window) {
+          try {
+            const observer = new MutationObserver(update);
+            observer.observe(window.parent.document.documentElement, {
+              attributes: true,
+              attributeFilter: ['class']
+            });
+            // Store observer for later cleanup if needed
+            window.themeObserver = observer;
+          } catch (e) {
+            console.warn('Could not set up theme observer:', e);
+          }
+        }
+        
+        // Also listen for system theme changes
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', update);
+        
+        // Store for cleanup
+        window.themeMediaQuery = mediaQuery;
+        
+      } catch (e) {
+        console.error('Error in theme sync:', e);
+      }
+    }
+
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', () => {
+      // Toggle between light and dark theme
+      const isDark = document.body.classList.toggle('dark');
+      currentTheme = isDark ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem('theme', currentTheme);
+      updateGrafanaIframes();
+      
+      // If not in an iframe, update the theme
+      if (window.parent === window) {
+        // This is the parent, just update local storage
+        localStorage.setItem('theme', currentTheme);
+      }
+      document.body.classList.toggle('dark');
+      localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Set initial theme
+    if (localStorage.getItem('theme') === 'dark' || 
+        (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches && !localStorage.getItem('theme'))) {
+      document.body.classList.add('dark');
+    }
+
+    // Refresh button
+    const refreshBtn = document.getElementById('refreshBtn');
+    const podsTableBody = document.getElementById('podsTableBody');
+    
+    // Stats elements
+    const totalPodsEl = document.getElementById('totalPods');
+    const runningPodsEl = document.getElementById('runningPods');
+    const pendingPodsEl = document.getElementById('pendingPods');
+    const errorPodsEl = document.getElementById('errorPods');
+    const podsChangeEl = document.getElementById('podsChange');
+    const runningChangeEl = document.getElementById('runningChange');
+    const pendingChangeEl = document.getElementById('pendingChange');
+    const errorChangeEl = document.getElementById('errorChange');
+
+    // Previous counts for comparison
+    let previousCounts = {
+      total: 0,
+      running: 0,
+      pending: 0,
+      error: 0
+    };
+
+    // Format age
+    function formatAge(startTime) {
+      if (!startTime) return '-';
+      
+      const startDate = new Date(startTime);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - startDate) / 1000);
+      
+      if (diffInSeconds < 60) {
+        return `${diffInSeconds}s`;
+      } else if (diffInSeconds < 3600) {
+        return `${Math.floor(diffInSeconds / 60)}m`;
+      } else if (diffInSeconds < 86400) {
+        return `${Math.floor(diffInSeconds / 3600)}h`;
+      } else {
+        return `${Math.floor(diffInSeconds / 86400)}d`;
+      }
+    }
+
+    // Format memory
+    function formatMemory(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Format CPU
+    function formatCpu(cores) {
+      if (cores >= 1) {
+        return cores.toFixed(2) + ' cores';
+      } else {
+        return (cores * 1000).toFixed(0) + 'm';
+      }
+    }
+
+    // Calculate percentage
+    function calculatePercentage(used, total) {
+      if (total === 0) return 0;
+      return Math.min(100, Math.round((used / total) * 100));
+    }
+
+    // Update stats
+    function updateStats(pods) {
+      const counts = {
+        total: pods.length,
+        running: pods.filter(pod => pod.status === 'Running').length,
+        pending: pods.filter(pod => pod.status === 'Pending').length,
+        error: pods.filter(pod => pod.status === 'Error' || pod.status === 'CrashLoopBackOff').length
+      };
+
+      // Update stats display
+      totalPodsEl.textContent = counts.total;
+      runningPodsEl.textContent = counts.running;
+      pendingPodsEl.textContent = counts.pending;
+      errorPodsEl.textContent = counts.error;
+
+      // Calculate changes
+      const changes = {
+        total: counts.total - previousCounts.total,
+        running: counts.running - previousCounts.running,
+        pending: counts.pending - previousCounts.pending,
+        error: counts.error - previousCounts.error
+      };
+
+      // Update change indicators
+      podsChangeEl.textContent = changes.total >= 0 ? `+${changes.total}` : changes.total;
+      podsChangeEl.parentElement.className = `stat-change ${changes.total >= 0 ? 'positive' : 'negative'}`;
+      
+      runningChangeEl.querySelector('span').textContent = changes.running >= 0 ? `+${changes.running}` : changes.running;
+      runningChangeEl.className = `stat-change ${changes.running >= 0 ? 'positive' : 'negative'}`;
+      
+      pendingChangeEl.querySelector('span').textContent = changes.pending >= 0 ? `+${changes.pending}` : changes.pending;
+      pendingChangeEl.className = `stat-change ${changes.pending >= 0 ? 'positive' : 'negative'}`;
+      
+      errorChangeEl.querySelector('span').textContent = changes.error >= 0 ? `+${changes.error}` : changes.error;
+      errorChangeEl.className = `stat-change ${changes.error >= 0 ? 'positive' : 'negative'}`;
+
+      // Store current counts for next comparison
+      previousCounts = counts;
+    }
+
+    // Update pods table
+    function updatePodsTable(pods) {
+      if (pods.length === 0) {
+        podsTableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">
+              <div class="empty-state-icon">📊</div>
+              <h3 class="empty-state-title">No Pods Found</h3>
+              <p class="empty-state-description">No pods are currently running in your cluster</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      podsTableBody.innerHTML = pods.map(pod => `
+        <tr>
+          <td>${pod.name || '-'}</td>
+          <td>${pod.namespace || '-'}</td>
+          <td>
+            <span class="status-badge ${pod.status || 'PENDING'}">
+              <span class="status-dot"></span>
+              ${pod.status || 'Pending'}
+            </span>
+          </td>
+          <td>
+            <div>${pod.cpuUsage ? formatCpu(pod.cpuUsage.used) : '-'} / ${pod.cpuUsage ? formatCpu(pod.cpuUsage.limit) : '-'}</div>
+            ${pod.cpuUsage ? `
+              <div class="usage-bar">
+                <div class="usage-bar-fill cpu" style="width: ${calculatePercentage(pod.cpuUsage.used, pod.cpuUsage.limit)}%"></div>
+              </div>
+            ` : ''}
+          </td>
+          <td>
+            <div>${pod.memoryUsage ? formatMemory(pod.memoryUsage.used) : '-'} / ${pod.memoryUsage ? formatMemory(pod.memoryUsage.limit) : '-'}</div>
+            ${pod.memoryUsage ? `
+              <div class="usage-bar">
+                <div class="usage-bar-fill memory" style="width: ${calculatePercentage(pod.memoryUsage.used, pod.memoryUsage.limit)}%"></div>
+              </div>
+            ` : ''}
+          </td>
+          <td>${formatAge(pod.startTime)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Load pods data
+    async function loadPods() {
+      try {
+        refreshBtn.classList.add('loading');
+        
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch('http://localhost:3000/api/kubernetes/pods', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Update stats
+        updateStats(data.pods || []);
+        
+        // Update table
+        updatePodsTable(data.pods || []);
+        
+      } catch (error) {
+        console.error('Error loading pods:', error);
+        podsTableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <h3 class="empty-state-title">Error Loading Pods</h3>
+              <p class="empty-state-description">${error.message}</p>
+            </td>
+          </tr>
+        `;
+      } finally {
+        refreshBtn.classList.remove('loading');
+      }
+    }
+
+    // Function to load Grafana URL from API
+    async function loadGrafanaUrl() {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          throw new Error('Authentication required. Please log in again.');
+        }
+
+        const apiBaseUrl = window.ENV?.BACKEND_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiBaseUrl}/api/grafana-url/url`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `Failed to load Grafana URL: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.url) {
+          throw new Error('Grafana URL not configured');
+        }
+        
+        return data.url;
+      } catch (error) {
+        console.error('Error loading Grafana URL:', error);
+        throw error;
+      }
+    }
+
+    // Function to update iframe sources with Grafana URL
+    async function updateGrafanaIframes() {
+      try {
+        const grafanaUrl = await loadGrafanaUrl();
+        if (!grafanaUrl) return;
+
+        // Update each iframe with the correct Grafana URL and current theme
+        const iframes = document.querySelectorAll('iframe');
+        const theme = currentTheme || 'light';
+        
+        if (iframes.length >= 2) {
+          // First row - two side by side iframes
+          iframes[0].src = `${grafanaUrl}/d-solo/7a18067ce943a40ae25454675c19ff5c/kubernetes-networking-pod?orgId=1&timezone=utc&var-datasource=default&var-cluster=&var-namespace=kube-system&var-pod=coredns-55cb58b774-qqdbz&refresh=10s&theme=${theme}&panelId=1&__feature=dashboardSceneSolo`;
+          iframes[1].src = `${grafanaUrl}/d-solo/7a18067ce943a40ae25454675c19ff5c/kubernetes-networking-pod?orgId=1&timezone=utc&var-datasource=default&var-cluster=&var-namespace=kube-system&var-pod=coredns-55cb58b774-qqdbz&refresh=10s&theme=${theme}&panelId=2&__feature=dashboardSceneSolo`;
+          
+          // Second row - full width iframe
+          if (iframes[2]) iframes[2].src = `${grafanaUrl}/d-solo/efa86fd1d0c121a26444b636a3f509a8/kubernetes-compute-resources-cluster?orgId=1&timezone=utc&var-datasource=default&var-cluster=&refresh=10s&theme=${theme}&panelId=7&__feature.dashboardSceneSolo`;
+          
+          // Third row - full width iframe
+          if (iframes[3]) iframes[3].src = `${grafanaUrl}/d-solo/85a562078cdf77779eaa1add43ccec1e/kubernetes-compute-resources-namespace-pods?orgId=1&from=1747739542253&to=1747743142253&timezone=utc&var-datasource=default&var-cluster=&var-namespace=default&refresh=10s&theme=${theme}&panelId=5&__feature.dashboardSceneSolo`;
+        }
+      } catch (error) {
+        console.error('Error updating Grafana iframes:', error);
+      }
+    }
+
+    // Initial load
+    syncTheme(); // Initialize theme sync
+    
+    refreshBtn.addEventListener('click', () => {
+      loadPods();
+      updateGrafanaIframes();
+    });
+    
+    // Initialize theme sync and load data
+    syncTheme();
+    loadPods();
+    updateGrafanaIframes();
+    
+    // Clean up event listeners when page unloads
+    window.addEventListener('beforeunload', () => {
+      if (window.themeObserver) {
+        window.themeObserver.disconnect();
+      }
+      if (window.themeMediaQuery) {
+        window.themeMediaQuery.removeEventListener('change', syncTheme);
+      }
+    });
+  </script>
+</body>
+</html>

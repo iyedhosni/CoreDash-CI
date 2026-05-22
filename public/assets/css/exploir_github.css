@@ -1,0 +1,145 @@
+ :root {
+      --primary: #545454 ;
+      --primary-light: #999a9b;
+      --primary-dark: #1b0f0f;
+      --secondary: #ef7d00;
+      --accent: #ef7d00;
+      --bg-dark: #0f172a;
+      --bg-darker: #0b1120;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .animate-float { animation: float 3s ease-in-out infinite; }
+    .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    
+    .gradient-text {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .repo-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .code-explorer {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+    
+    .language-graph {
+      height: 300px;
+      width: 300px;
+      margin: 0 auto;
+    }
+    
+    .network-graph {
+      height: 400px;
+      width: 100%;
+      background: var(--bg-darker);
+      border-radius: 1rem;
+    }
+    
+    .radial-progress {
+      --value: 0;
+      --size: 6rem;
+      --thickness: 8px;
+    }
+    
+    .contributor-avatar:hover {
+      transform: scale(1.2);
+      z-index: 10;
+    }
+    
+    .file-tree {
+      font-family: 'Fira Code', monospace;
+    }
+    
+    .file-tree li {
+      position: relative;
+      padding-left: 1.5rem;
+    }
+    
+    .file-tree li:before {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .file-tree li:after {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      top: 0.75rem;
+      width: 0.75rem;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .file-tree li:last-child:before {
+      height: 0.75rem;
+    }
+    
+    .dark .dark\:glow-effect {
+      box-shadow: 0 0 15px rgba(231, 136, 12, 0.5);
+    }
+    
+    .dark .dark\:neon-text {
+      text-shadow: 0 0 5px rgba(240, 141, 28, 0.8);
+    }
+    
+    .sparkle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgb(245, 8, 8);
+      border-radius: 50%;
+      opacity: 0;
+      animation: sparkle 1.5s infinite;
+    }
+    
+    @keyframes sparkle {
+      0% { opacity: 0; transform: scale(0); }
+      50% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0); }
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-light);
+    }

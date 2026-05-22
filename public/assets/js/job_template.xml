@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow-definition plugin="workflow-job@2.40">
+  <actions/>
+  <description>${DESCRIPTION}</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <!-- Only include these if you add them in JS, otherwise will be removed by cleanupXml -->
+    ${GITHUB_PROJECT_PROPERTY}
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.92">
+    <script><![CDATA[${SCRIPT}]]></script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers>
+    ${GITHUB_HOOK_TRIGGER}
+  </triggers>
+  <disabled>false</disabled>
+  <buildDiscarder class="hudson.tasks.LogRotator">
+    <daysToKeepStr>-1</daysToKeepStr>
+    <numToKeepStr>-1</numToKeepStr>
+    <artifactDaysToKeepStr>-1</artifactDaysToKeepStr>
+    <artifactNumToKeepStr>-1</artifactNumToKeepStr>
+  </buildDiscarder>
+</flow-definition>

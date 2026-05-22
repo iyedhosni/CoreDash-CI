@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+ <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <i class="fas fa-cubes"></i>
+                <span>Nexus Repository Dashboard</span>
+            </div>
+            <div>
+                
+                <button id="refreshBtn" class="refresh-btn">
+                    <span class="icon"><i class="fas fa-sync-alt"></i></span>
+                    <span class="spinner"><i class="fas fa-spinner"></i></span>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-title">Total Repositories</div>
+                <div class="stat-value" id="totalRepos">--</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>2 from last week</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Hosted Repositories</div>
+                <div class="stat-value" id="hostedRepos">--</div>
+                <div class="stat-change negative">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>1 from last week</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Proxy Repositories</div>
+                <div class="stat-value" id="proxyRepos">--</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>3 from last week</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Storage Used</div>
+                <div class="stat-value" id="storageUsed">--</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>5% from last week</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="repositories">Repositories</div>
+            <div class="tab" data-tab="tasks">Tasks</div>
+            <div class="tab" data-tab="scripts">Scripts</div>
+            <div class="tab" data-tab="search">Search</div>
+        </div>
+
+        <div class="tab-content active" id="repositories-tab">
+            <div class="projects-table-container">
+                <table class="projects-table" id="repositories-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Format</th>
+                            <th>Status</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="repositories-list">
+                        <!-- Repositories will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tasks-tab">
+            <div class="projects-table-container">
+                <table class="projects-table" id="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Last Run</th>
+                            <th>Next Run</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasks-list">
+                        <!-- Tasks will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-content" id="scripts-tab">
+            <div class="projects-table-container">
+                <table class="projects-table" id="scripts-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Last Modified</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scripts-list">
+                        <!-- Scripts will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-content" id="search-tab">
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="searchQuery" placeholder="Search components..." style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                    <button id="searchBtn" class="action-btn">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </div>
+            <div class="projects-table-container">
+                <table class="projects-table" id="search-results-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Repository</th>
+                            <th>Format</th>
+                            <th>Version</th>
+                            <th>Last Modified</th>
+                        </tr>
+                    </thead>
+                    <tbody id="search-results">
+                        <!-- Search results will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repository Detail Modal -->
+     <div class="modal" id="repoDetailModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="repoDetailTitle">Repository Details</h3>
+                <button class="modal-close" id="closeRepoModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="repoDetailContent">
+                    <div class="repo-detail-container">
+                        <div class="repo-detail-header">
+                            <i class="fas fa-box-open repo-detail-icon"></i>
+                            <h2 class="repo-detail-title" id="repoDetailName">Loading...</h2>
+                            <span class="repo-type-badge" id="repoDetailTypeBadge">hosted</span>
+                            <span class="format-badge" id="repoDetailFormatBadge">maven2</span>
+                            <span class="status-badge" id="repoDetailStatusBadge"><span class="status-dot"></span>Online</span>
+                        </div>
+                        
+                        <div class="detail-tabs">
+                            <div class="detail-tab active" data-tab="overview">Overview</div>
+                            <div class="detail-tab" data-tab="Project_files">Project files</div>
+                            <div class="detail-tab" data-tab="configuration">Configuration</div>
+                            <div class="detail-tab" data-tab="components">Components</div>
+                            
+                        </div>
+                        
+                        <div class="detail-tab-content active" id="overview-tab">
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-info-circle"></i> Basic Information</h4>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Name</span>
+                                    <span class="repo-detail-value" id="repoDetailNameValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Type</span>
+                                    <span class="repo-detail-value" id="repoDetailTypeValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Format</span>
+                                    <span class="repo-detail-value" id="repoDetailFormatValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Status</span>
+                                    <span class="repo-detail-value" id="repoDetailStatusValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">URL</span>
+                                    <span class="repo-detail-value" id="repoDetailUrlValue">--</span>
+                                </div>
+                            </div>
+                            
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-database"></i> Storage</h4>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Total Size</span>
+                                    <span class="repo-detail-value" id="repoDetailSizeValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Blob Store</span>
+                                    <span class="repo-detail-value" id="repoDetailBlobStoreValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Usage</span>
+                                    <span class="repo-detail-value" id="repoDetailUsageValue">--</span>
+                                </div>
+                                <div class="repo-storage-meter">
+                                    <div class="repo-storage-progress" id="repoStorageProgress"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-history"></i> Activity</h4>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Created</span>
+                                    <span class="repo-detail-value" id="repoDetailCreatedValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Last Updated</span>
+                                    <span class="repo-detail-value" id="repoDetailUpdatedValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Last Downloaded</span>
+                                    <span class="repo-detail-value" id="repoDetailDownloadedValue">--</span>
+                                </div>
+                            </div>
+                            
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-chart-bar"></i> Statistics</h4>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Components</span>
+                                    <span class="repo-detail-value" id="repoDetailComponentsCount">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Assets</span>
+                                    <span class="repo-detail-value" id="repoDetailAssetsCount">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Downloads (7d)</span>
+                                    <span class="repo-detail-value" id="repoDetailDownloadsValue">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-tab-content" id="Project_files-tab">
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title">
+                                    <i class="fas fa-folder-tree"></i> File Structure
+                                </h4>
+                                <div id="repoFileTree" class="text-sm font-mono text-gray-700 dark:text-gray-200 whitespace-pre-wrap">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-tab-content" id="configuration-tab">
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-cog"></i> Repository Configuration</h4>
+                                <div class="json-viewer" id="repoDetailJson">Loading configuration...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-tab-content" id="components-tab">
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-cubes"></i> Top Components</h4>
+                                <div class="repo-components-list" id="repoComponentsList">
+                                    <!-- Components will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn" id="runRepoTaskBtn">
+                    <i class="fas fa-play"></i> Run Task
+                </button>
+                <button class="action-btn" id="browseRepoBtn">
+                    <i class="fas fa-folder-open"></i> Browse
+                </button>
+                <button class="action-btn" id="deleteRepoBtn" style="background-color: #ef4444;">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div class="modal" id="taskDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="taskDetailTitle">Task Details</h3>
+                <button class="modal-close" id="closeTaskModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="taskDetailContent">
+                    <div class="json-viewer" id="taskDetailJson">Loading...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn" id="runTaskBtn">
+                    <i class="fas fa-play"></i> Run Now
+                </button>
+                <button class="action-btn" id="stopTaskBtn" style="background-color: #ef4444;">
+                    <i class="fas fa-stop"></i> Stop
+                </button>
+            </div>
+        </div>
+    </div>
+
+   
+    <script src="assets/js/nexus_dashboard.js"></script>
+</body>
+</html>

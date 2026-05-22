@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Account Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .container {
+            background-color: #fefeff;
+            max-width: 80%;
+            padding-left: 2rem;
+            padding-right: 2rem;
+            padding-bottom: 2rem;
+            padding-top: 2rem;
+            border-radius: 0.5rem;
+        }
+
+        h1 {
+            color: #1e293b;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-weight: 700;
+            font-size: 2.25rem;
+            letter-spacing: -0.025em;
+        }
+
+        #userAccountTable {
+            width: 100%;
+            border-collapse: collapse;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background-color: white;
+        }
+
+        #userAccountTable thead th {
+            background-color: #f9fafb;
+            color: #4b5563;
+            padding: 1.25rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 1rem;
+            letter-spacing: 0.025em;
+        }
+
+        #userAccountTable tbody td {
+            padding: 1.25rem 1rem;
+            color: #6b7280;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+
+        #userAccountTable tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        #userAccountTable .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            line-height: 1.25rem;
+            border-radius: 1rem;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            color: white;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.08);
+        }
+
+        #userAccountTable .status-active {
+            background-color: #16a34a;
+            color: white;
+        }
+
+        #userAccountTable .status-inactive {
+            background-color: #9ca3af;
+            color: white;
+        }
+
+        #userAccountTable .actions-button {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        #userAccountTable .actions-button:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        #userAccountTable .actions-button:active {
+            transform: translateY(0) scale(0.96);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        #userAccountTable .edit-button {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        #userAccountTable .edit-button:hover {
+            background-color: #2563eb;
+        }
+
+        #userAccountTable .delete-button {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        #userAccountTable .delete-button:hover {
+            background-color: #dc2626;
+        }
+
+        .modal-content {
+            border-radius: 0.75rem;
+            box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.15), 0 3px 7px -3px rgba(0, 0, 0, 0.07);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 1.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            letter-spacing: -0.025em;
+        }
+
+        .modal-body {
+            padding: 1.75rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.75rem;
+            display: block;
+            font-size: 0.925rem;
+        }
+
+        .form-control {
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            padding: 0.875rem;
+            font-size: 1rem;
+            width: 100%;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            color: #4b5563;
+            box-shadow: inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.06);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.06);
+        }
+
+        .form-check-input {
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            width: 1.375rem;
+            height: 1.375rem;
+            margin-top: 0.375rem;
+            cursor: pointer;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-check-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .form-check-input:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .form-check-label {
+            margin-left: 1rem;
+            font-size: 1rem;
+            color: #4b5563;
+            cursor: pointer;
+        }
+
+        .save-changes-button {
+            background-color: #10b981;
+            color: white;
+            padding: 0.875rem 2rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 0.75rem;
+        }
+
+        .save-changes-button:hover {
+            background-color: #059669;
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 5px 7px rgba(0, 0, 0, 0.2);
+        }
+
+        .save-changes-button:active {
+            background-color: #047857;
+            transform: translateY(0) scale(0.97);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .dataTables_wrapper .dataTables_filter input {
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.9rem;
+            width: 275px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            color: #4b5563;
+            margin-left: 0.75rem;
+            box-shadow: inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.06);
+        }
+
+        .dataTables_wrapper .dataTables_filter input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.06);
+        }
+
+        .dataTables_wrapper .dataTables_length select {
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.9rem;
+            width: 80px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            color: #4b5563;
+            margin-left: 0.75rem;
+            box-shadow: inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.06);
+        }
+
+        .dataTables_wrapper .dataTables_length select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.06);
+        }
+
+        /* New Styles for Header and Theme Toggle */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .dashboard-title {
+            font-size: 1.75rem; /* Adjusted from 2.25rem */
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-icon {
+            background-color: transparent;
+            border: none;
+            color: #4b5563;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background-color: #f3f4f6;
+            color: #1e293b;
+        }
+
+        /* Action buttons styling */
+        .page-actions {
+            display: flex;
+            gap: 1rem; /* Space between buttons */
+            margin-bottom: 2rem; /* Space below the button group */
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+        }
+
+        .btn-icon-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem; /* Space between icon and text */
+            padding: 0.6rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+        }
+
+        /* Dark theme adjustments */
+        [data-theme='dark'] body {
+            background-color: #0f172a; /* Dark background */
+            color: #e2e8f0; /* Light text */
+        }
+
+        [data-theme='dark'] .container {
+            background-color: #1e293b; /* Darker container background */
+            border-color: #334155;
+        }
+
+        [data-theme='dark'] h1, [data-theme='dark'] .dashboard-title {
+            color: #f1f5f9; /* Lighter heading color */
+        }
+
+        /* Dark theme for DataTable */
+        [data-theme='dark'] #userAccountTable {
+            background-color: #1e293b; /* Match container or slightly different if preferred */
+            color: #cbd5e1;
+        }
+
+        [data-theme='dark'] #userAccountTable thead th {
+            background-color: #273244; /* Slightly different from table body for distinction */
+            color: #e2e8f0;
+            border-bottom-color: #334155;
+        }
+
+        [data-theme='dark'] #userAccountTable tbody td {
+            background-color: #1e293b; /* Match table background or container */
+            color: #cbd5e1;
+            border-bottom-color: #334155;
+        }
+
+        [data-theme='dark'] #userAccountTable tbody tr {
+            background-color: #1e293b; /* Ensure row itself has dark background */
+            border-top-color: #334155; /* Add top border for separation if needed */
+        }
+
+        [data-theme='dark'] #userAccountTable tbody tr:hover td {
+            background-color: #334155 !important; /* Darker hover for table rows, ensure it overrides */
+            color: #f1f5f9;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper {
+            color: #cbd5e1;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_filter input,
+        [data-theme='dark'] .dataTables_wrapper .dataTables_length select {
+            background-color: #0f172a;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_info {
+            color: #94a3b8;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button {
+            color: #94a3b8 !important; /* Ensure text color is applied */
+            background: #273244 !important; /* Button background */
+            border: 1px solid #334155 !important;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #334155 !important;
+            color: #f1f5f9 !important;
+            border-color: #4f5a6e !important;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #3b82f6 !important; /* Primary color for current page */
+            color: white !important;
+            border-color: #3b82f6 !important;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+            color: #6b7280 !important;
+            background: #1e293b !important;
+            border-color: #334155 !important;
+        }
+
+        /* Ensure status badges are visible on dark backgrounds */
+        [data-theme='dark'] #userAccountTable .status-badge.status-active {
+            background-color: #16a34a; /* Keep original color or adjust for contrast */
+            color: white;
+        }
+
+        [data-theme='dark'] #userAccountTable .status-badge.status-inactive {
+            background-color: #6b7280; /* Keep original color or adjust for contrast */
+            color: white;
+        }
+
+        /* Ensure action buttons in table are styled for dark mode if needed */
+        [data-theme='dark'] #userAccountTable .actions-button.edit-button {
+            background-color: #3b82f6;
+            color: white;
+        }
+        [data-theme='dark'] #userAccountTable .actions-button.edit-button:hover {
+            background-color: #2563eb;
+        }
+        [data-theme='dark'] #userAccountTable .actions-button.delete-button {
+            background-color: #ef4444;
+            color: white;
+        }
+        [data-theme='dark'] #userAccountTable .actions-button.delete-button:hover {
+            background-color: #dc2626;
+        }
+
+        [data-theme='dark'] .modal-content {
+            background-color: #1e293b;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        [data-theme='dark'] .modal-header {
+            border-bottom-color: #334155;
+        }
+
+        [data-theme='dark'] .modal-title, [data-theme='dark'] .form-label {
+            color: #f1f5f9;
+        }
+
+        [data-theme='dark'] .form-control {
+            background-color: #0f172a;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        [data-theme='dark'] .form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_filter input,
+        [data-theme='dark'] .dataTables_wrapper .dataTables_length select {
+            background-color: #0f172a;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_info {
+            color: #94a3b8;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button {
+            color: #94a3b8;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background-color: #334155;
+            color: #f1f5f9;
+        }
+
+        [data-theme='dark'] .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        [data-theme='dark'] .btn-icon {
+            color: #94a3b8;
+        }
+
+        [data-theme='dark'] .btn-icon:hover {
+            background-color: #334155;
+            color: #f1f5f9;
+        }
+
+        .theme-toggle-btn .fa-moon {
+            display: inline;
+        }
+        .theme-toggle-btn .fa-sun {
+            display: none;
+        }
+        [data-theme='dark'] .theme-toggle-btn .fa-moon {
+            display: none;
+        }
+        [data-theme='dark'] .theme-toggle-btn .fa-sun {
+            display: inline;
+        }
+
+    </style>
+
+</head>
+<body >
+    <div class="container mt-4">
+        <!-- New Header Section -->
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">
+                <i class="fas fa-users-cog"></i>
+                <span>User Account Management</span>
+            </h1>
+            <div class="header-actions">
+                <button id="themeToggleBtn" class="btn-icon theme-toggle-btn" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- New Action Buttons Section -->
+        <div class="page-actions">
+            <button id="exportExcelBtn" class="btn btn-outline-success btn-icon-text">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </button>
+            <button id="importExcelBtn" class="btn btn-outline-info btn-icon-text">
+                <i class="fas fa-file-import"></i> Import from Excel
+            </button>
+            <input type="file" id="importExcelFile" class="d-none" accept=".csv, .xlsx, .xls">
+            <button class="btn btn-primary btn-icon-text" data-bs-toggle="modal" data-bs-target="#userCreateModal">
+                <i class="fas fa-user-plus"></i> Create User Account
+            </button>
+        </div>
+
+        <!-- User Account Table -->
+        <table id="userAccountTable" class="display">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+        <!-- Create User Modal -->
+        <div class="modal fade" id="userCreateModal" tabindex="-1" aria-labelledby="userCreateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <form id="createUserForm" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userCreateModalLabel">Create User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="createFirstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="createFirstName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="createLastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="createLastName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="createEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="createEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="createRole" class="form-label">Role</label>
+                            <select class="form-control" id="createRole" required>
+                                
+                                <option value="">Select role</option>
+                                <option value="admin">Admin</option>
+                                <option value="developpeur">Developpeur</option>
+                                <option value="professional_devops">Professional DevOps</option>
+                                <option value="superviseur">Superviseur</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="createPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="createPassword" required>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="createIsActive" checked>
+                            <label class="form-check-label" for="createIsActive">Active</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Create</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit User Modal -->
+        <div class="modal fade" id="userEditModal" tabindex="-1" aria-labelledby="userEditModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userEditModalLabel">Edit Account</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editAccountForm">
+                            <input type="hidden" id="editAccountId">
+                            <div class="mb-3">
+                                <label for="editAccountFirstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="editAccountFirstName">
+                            </div>
+                            <div class="mb-3">
+                                <label for="editAccountLastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="editAccountLastName">
+                            </div>
+                            <div class="mb-3">
+                                <label for="editAccountEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="editAccountEmail">
+                            </div>
+                            <div class="mb-3">
+                                <label for="editAccountRole" class="form-label">Role</label>
+                                <select class="form-control" id="editAccountRole">
+                                    <option value="developpeur">Developpeur</option>
+                                    <option value="professional_devops">Professional DevOps</option>
+                                    <option value="superviseur">Superviseur</option>
+                                </select>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="editAccountActive">
+                                <label class="form-check-label" for="editAccountActive">Active</label>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editAccountNewPassword" class="form-label">New Password (optional)</label>
+                                <input type="password" class="form-control" id="editAccountNewPassword">
+                            </div>
+                            <button type="submit" class="btn save-changes-button">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="assets/js/account.js"></script>
+
+    <script>
+        // Theme synchronization with parent
+        function syncTheme() {
+            try {
+                if (window.parent !== window) {
+                    const update = () => {
+                        const isDark = window.parent.document.documentElement.classList.contains('dark');
+                        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                    };
+                    update();
+                    const observer = new MutationObserver(update);
+                    observer.observe(window.parent.document.documentElement, {
+                        attributes: true,
+                        attributeFilter: ['class']
+                    });
+                }
+            } catch (e) {
+                console.warn('Could not access parent theme due to CORS', e);
+                // Fallback to local storage if parent access fails
+                const currentTheme = localStorage.getItem('theme') || 'light';
+                document.documentElement.setAttribute('data-theme', currentTheme);
+            }
+        }
+        syncTheme();
+
+        // Remove the theme toggle button since it's now controlled by the parent
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        if (themeToggleBtn && themeToggleBtn.parentElement) {
+            themeToggleBtn.parentElement.remove();
+        }
+
+        // DataTable initialization is now expected to be handled by assets/js/account.js
+    </script>
+</body>
+</html>

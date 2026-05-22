@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervisor Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dashboard-container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .theme-toggle {
+            background: none;
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-left: 10px;
+            color: #333;
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        .loading, .error {
+            padding: 40px 20px;
+            text-align: center;
+            background: white;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .error {
+            color: #e74c3c;
+            border-left: 4px solid #e74c3c;
+        }
+        .iframe-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .iframe-row-small-panels {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping to next line if not enough space */
+            gap: 20px;
+            justify-content: space-around; /* Distribute space */
+        }
+        .panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+        .panel-small {
+            flex: 1 1 200px; /* Grow, shrink, base width ~200px */
+            min-width: 180px; /* Minimum width before wrapping */
+            max-width: 250px; /* Maximum width */
+            height: 150px; /* Small height for single numbers */
+        }
+        .panel-large {
+            width: 100%;
+            height: 350px; /* Taller for graphs */
+        }
+        .panel iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Dark mode styles */
+        body.dark {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        .dark .dashboard-header,
+        .dark .panel,
+        .dark .loading,
+        .dark .error {
+            background: #1e293b;
+            color: #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .dark .theme-toggle {
+            color: #e2e8f0;
+            border-color: #555;
+        }
+        .dark .error {
+            border-left-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="dashboard-title">Supervisor Dashboard</div>
+            <button class="theme-toggle" style="display: none" id="themeToggle">🌓</button>
+        </div>
+        <div id="dashboard-content">
+            <div class="loading">
+                <h2>Loading Supervisor Dashboards...</h2>
+                <p>Please wait while we fetch the necessary configurations.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTheme = 'light';
+
+        function syncTheme() {
+            try {
+                const update = () => {
+                    let isDark = false;
+                    if (window.parent !== window) {
+                        try {
+                            isDark = window.parent.document.documentElement.classList.contains('dark');
+                        } catch (e) {
+                            console.warn('CORS issue accessing parent theme, using local theme.');
+                            isDark = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                        }
+                    } else {
+                        isDark = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    }
+                    currentTheme = isDark ? 'dark' : 'light';
+                    document.documentElement.setAttribute('data-theme', currentTheme);
+                    document.body.classList.toggle('dark', isDark);
+
+                    document.querySelectorAll('#dashboard-content iframe').forEach(iframe => {
+                        try {
+                            let src = iframe.src;
+                            if (src.includes('theme=')) {
+                                src = src.replace(/theme=(light|dark)/, `theme=${currentTheme}`);
+                            } else {
+                                src += (src.includes('?') ? '&' : '?') + `theme=${currentTheme}`;
+                            }
+                            if (iframe.src !== src) iframe.src = src;
+                        } catch (e) { console.warn('Error updating iframe theme:', e); }
+                    });
+                };
+                update();
+                if (window.parent !== window) {
+                    try {
+                        const observer = new MutationObserver(update);
+                        observer.observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+                    } catch (e) { console.warn('CORS issue observing parent theme.'); }
+                }
+            } catch (error) { console.error('Error in syncTheme:', error); }
+        }
+
+        async function loadGrafanaUrl() {
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (!token) throw new Error('Authentication required.');
+                const apiBaseUrl = window.ENV?.BACKEND_URL || 'http://localhost:3000';
+                const response = await fetch(`${apiBaseUrl}/api/grafana-url/url`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Simplified: Assume login redirect is handled by parent or main app
+                        throw new Error('Session expired. Please log in again.');
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `Failed to load Grafana URL: ${response.statusText}`);
+                }
+                const data = await response.json();
+                if (!data.url) throw new Error('Grafana URL not configured.');
+                return data.url.replace(/\/$/, ''); // Remove trailing slash if any
+            } catch (error) {
+                console.error('Error loading Grafana URL:', error);
+                if (error.message.includes('Session expired') || error.message.includes('Authentication required')) {
+                    if (!window.location.pathname.endsWith('login.html')) {
+                        // window.location.href = '/login.html'; // Avoid redirecting from iframe directly
+                    }
+                }
+                throw error;
+            }
+        }
+
+        function renderDashboardIframes(grafanaBaseUrl) {
+            const contentDiv = document.getElementById('dashboard-content');
+            const themeParam = `theme=${currentTheme}`;
+
+            const iframeSources = [
+                // Small panels (first 5)
+                { panelId: '1', path: 'b59e6c9f2fcbe2e16d77fc492374cc4f/kubernetes-compute-resources-multi-cluster', vars: 'orgId=1&timezone=utc&var-datasource=default&refresh=10s', type: 'small' },
+                { panelId: '2', path: 'b59e6c9f2fcbe2e16d77fc492374cc4f/kubernetes-compute-resources-multi-cluster', vars: 'orgId=1&timezone=utc&var-datasource=default&refresh=10s', type: 'small' },
+                { panelId: '4', path: 'b59e6c9f2fcbe2e16d77fc492374cc4f/kubernetes-compute-resources-multi-cluster', vars: 'orgId=1&timezone=utc&var-datasource=default&refresh=10s', type: 'small' },
+                { panelId: '5', path: 'b59e6c9f2fcbe2e16d77fc492374cc4f/kubernetes-compute-resources-multi-cluster', vars: 'orgId=1&timezone=utc&var-datasource=default&refresh=10s', type: 'small' },
+                { panelId: '6', path: 'b59e6c9f2fcbe2e16d77fc492374cc4f/kubernetes-compute-resources-multi-cluster', vars: 'orgId=1&timezone=utc&var-datasource=default&refresh=10s', type: 'small' },
+                // Large panels (last 3)
+                { panelId: '7', path: 'b59e6c9f2fcbe2e16d77fc492374cc4f/kubernetes-compute-resources-multi-cluster', vars: 'orgId=1&timezone=utc&var-datasource=default&refresh=10s', type: 'large' },
+                { panelId: '9', path: '7d57716318ee0dddbac5a7f451fb7753/node-exporter-nodes', vars: 'orgId=1&timezone=utc&var-datasource=prometheus&var-cluster=&var-instance=192.168.1.70:9100&refresh=30s', type: 'large' },
+                { panelId: '5', path: '3e97d1d02672cdd0861f4c97c64f89b2/node-exporter-use-method-cluster', vars: 'orgId=1&timezone=utc&var-datasource=prometheus&var-cluster=&refresh=30s', type: 'large' }
+            ];
+
+            let smallPanelsHtml = '';
+            let largePanelsHtml = '';
+
+            iframeSources.forEach(source => {
+                const iframeSrc = `${grafanaBaseUrl}/d-solo/${source.path}?${source.vars}&${themeParam}&panelId=${source.panelId}&__feature.dashboardSceneSolo`;
+                const iframeHtml = `<div class="panel panel-${source.type}"><iframe src="${iframeSrc}" loading="lazy"></iframe></div>`;
+                if (source.type === 'small') {
+                    smallPanelsHtml += iframeHtml;
+                } else {
+                    largePanelsHtml += iframeHtml;
+                }
+            });
+
+            contentDiv.innerHTML = `
+                <div class="iframe-grid">
+                    <div class="iframe-row-small-panels">
+                        ${smallPanelsHtml}
+                    </div>
+                    ${largePanelsHtml} 
+                </div>
+            `;
+            syncTheme(); // Re-apply theme to newly added iframes
+        }
+
+        async function initDashboard() {
+            syncTheme(); // Initial theme set before loading content
+            const contentDiv = document.getElementById('dashboard-content');
+            try {
+                const grafanaUrl = await loadGrafanaUrl();
+                renderDashboardIframes(grafanaUrl);
+            } catch (error) {
+                console.error('Failed to initialize Supervisor Dashboard:', error);
+                let errorMessage = 'Failed to load dashboard. Please try again later.';
+                if (error.message.includes('Authentication') || error.message.includes('Session expired')) {
+                    errorMessage = 'Your session has expired or authentication is required. Please ensure you are logged in via the main application.';
+                } else if (error.message.includes('Grafana URL not configured')) {
+                    errorMessage = 'Grafana integration is not configured. Please contact support.';
+                }
+                contentDiv.innerHTML = `<div class="error"><h2>Error</h2><p>${errorMessage}</p></div>`;
+                document.body.classList.toggle('dark', document.documentElement.getAttribute('data-theme') === 'dark');
+            }
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            syncTheme();
+        });
+
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.IO Test</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      padding: 20px;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .connected { background-color: #d4edda; color: #155724; }
+    .disconnected { background-color: #f8d7da; color: #721c24; }
+    .log-container {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-top: 20px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="my-4">Socket.IO Connection Test</h1>
+    
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Connection Status</h5>
+      </div>
+      <div class="card-body">
+        <div id="connectionStatus" class="status">
+          <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <span class="ms-2">Connecting to server...</span>
+        </div>
+        
+        <div class="mb-3">
+          <label for="userId" class="form-label">User ID</label>
+          <input type="text" class="form-control" id="userId" value="test-user-123" readonly>
+        </div>
+        
+        <div class="mb-3">
+          <label for="roleSelect" class="form-label">Role</label>
+          <select class="form-select" id="roleSelect">
+            <option value="admin">Administrator</option>
+            <option value="professional_developer">Developer</option>
+            <option value="professional_devops">DevOps</option>
+            <option value="professional_tester">Tester</option>
+            <option value="client">Client</option>
+          </select>
+        </div>
+        
+        <button id="updateRoleBtn" class="btn btn-primary">Update Role</button>
+      </div>
+    </div>
+    
+    <div class="card mt-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">User Counts</h5>
+        <button id="refreshCounts" class="btn btn-sm btn-outline-secondary">Refresh</button>
+      </div>
+      <div class="card-body">
+        <div id="userCounts" class="row">
+          <div class="col-12 text-center">
+            <div class="spinner-border spinner-border-sm" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="ms-2">Loading user counts...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5 class="mb-0">Event Log</h5>
+      </div>
+      <div class="card-body p-0">
+        <div id="eventLog" class="log-container">
+          <div class="log-entry">Connecting to Socket.IO server...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM elements
+      const connectionStatus = document.getElementById('connectionStatus');
+      const userIdInput = document.getElementById('userId');
+      const roleSelect = document.getElementById('roleSelect');
+      const updateRoleBtn = document.getElementById('updateRoleBtn');
+      const refreshCountsBtn = document.getElementById('refreshCounts');
+      const userCounts = document.getElementById('userCounts');
+      const eventLog = document.getElementById('eventLog');
+      
+      // Generate a random user ID if not set
+      if (!localStorage.getItem('testUserId')) {
+        localStorage.setItem('testUserId', 'test-user-' + Math.random().toString(36).substr(2, 9));
+      }
+      const userId = localStorage.getItem('testUserId');
+      userIdInput.value = userId;
+      
+      // Log function
+      function addLog(message, type = 'info') {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry text-${type}`;
+        logEntry.innerHTML = `<strong>[${timeString}]</strong> ${message}`;
+        eventLog.prepend(logEntry);
+        
+        // Keep only the last 100 log entries
+        while (eventLog.children.length > 100) {
+          eventLog.removeChild(eventLog.lastChild);
+        }
+      }
+      
+      // Initialize socket connection
+      const socket = io('http://localhost:3000', {
+        withCredentials: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        transports: ['websocket', 'polling'],
+        path: '/socket.io/',
+        timeout: 10000 // 10 seconds timeout
+      });
+      
+      // Log connection attempts
+      console.log('Attempting to connect to Socket.IO server...');
+      addLog('Attempting to connect to Socket.IO server at: ' + window.location.host, 'info');
+      
+      let currentRole = roleSelect.value;
+      
+      // Connection events
+      socket.on('connect', () => {
+        connectionStatus.innerHTML = '<i class="bi bi-check-circle-fill"></i> Connected to server';
+        connectionStatus.className = 'status connected';
+        addLog('Connected to server', 'success');
+        
+        // Authenticate with the server
+        socket.emit('authenticate', {
+          userId: userId,
+          role: currentRole
+        });
+        
+        // Request initial counts
+        socket.emit('getInitialCounts');
+      });
+      
+      socket.on('disconnect', (reason) => {
+        connectionStatus.innerHTML = `<i class="bi bi-x-circle-fill"></i> Disconnected: ${reason}`;
+        connectionStatus.className = 'status disconnected';
+        addLog(`Disconnected: ${reason}`, 'danger');
+      });
+      
+      socket.on('connect_error', (error) => {
+        connectionStatus.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Connection error`;
+        connectionStatus.className = 'status disconnected';
+        addLog(`Connection error: ${error.message || 'Unknown error'}`, 'danger');
+      });
+      
+      socket.on('reconnect', (attemptNumber) => {
+        addLog(`Reconnected after ${attemptNumber} attempts`, 'success');
+        // Re-authenticate after reconnection
+        socket.emit('authenticate', {
+          userId: userId,
+          role: currentRole
+        });
+      });
+      
+      // Handle user count updates
+      socket.on('userCountUpdate', (counts) => {
+        updateUserCounts(counts);
+        addLog('Received user count update', 'info');
+      });
+      
+      // Handle initial counts
+      socket.on('initialCounts', (counts) => {
+        updateUserCounts(counts);
+        addLog('Received initial user counts', 'info');
+      });
+      
+      // Update role button click handler
+      updateRoleBtn.addEventListener('click', () => {
+        const newRole = roleSelect.value;
+        if (newRole !== currentRole) {
+          currentRole = newRole;
+          socket.emit('updateRole', { role: newRole });
+          addLog(`Role updated to: ${newRole}`, 'info');
+        }
+      });
+      
+      // Refresh counts button click handler
+      refreshCountsBtn.addEventListener('click', () => {
+        socket.emit('getInitialCounts');
+        addLog('Requested updated user counts', 'info');
+      });
+      
+      // Update the user counts display
+      function updateUserCounts(counts) {
+        if (!counts || Object.keys(counts).length === 0) {
+          userCounts.innerHTML = '<div class="col-12 text-center">No active users</div>';
+          return;
+        }
+        
+        // Calculate total users
+        const totalUsers = Object.values(counts).reduce((sum, count) => sum + count, 0);
+        
+        let html = `
+          <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+              <div class="card-body text-center">
+                <h6 class="card-title">Total Users</h6>
+                <h3 class="mb-0">${totalUsers}</h3>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Add role-specific counts
+        for (const [role, count] of Object.entries(counts)) {
+          if (role === 'total') continue;
+          
+          // Format role name for display
+          const roleName = role
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase());
+            
+          html += `
+            <div class="col-md-3 mb-3">
+              <div class="card">
+                <div class="card-body text-center">
+                  <h6 class="card-title">${roleName}</h6>
+                  <h3 class="mb-0">${count}</h3>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        
+        userCounts.innerHTML = html;
+      }
+    });
+  </script>
+</body>
+</html>

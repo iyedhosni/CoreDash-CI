@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DockerHub Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <style>
+        
+    </style>
+</head>
+<body>
+    
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <i class="fab fa-docker"></i>
+                <span>DockerHub Dashboard</span>
+            </div>
+            <div>
+                <button id="refreshBtn" class="refresh-btn">
+                    <span class="icon"><i class="fas fa-sync-alt"></i></span>
+                    <span class="spinner"><i class="fas fa-spinner"></i></span>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-title">Total Repositories</div>
+                <div class="stat-value" id="totalRepos">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Private Repositories</div>
+                <div class="stat-value" id="privateRepos">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Public Repositories</div>
+                <div class="stat-value" id="publicRepos">--</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="repositories">Repositories</div>
+        </div>
+
+        <div class="tab-content active" id="repositories-tab">
+            <div class="projects-table-container">
+                <table class="projects-table" id="repositories-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Visibility</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="repositories-list">
+                        <!-- Repositories will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repository Detail Modal -->
+    <div class="modal" id="repoDetailModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="repoDetailTitle">Repository Details</h3>
+                <button class="modal-close" id="closeRepoModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="repoDetailContent">
+                    <div class="repo-detail-container">
+                        <div class="repo-detail-header">
+                            <i class="fab fa-docker repo-detail-icon"></i>
+                            <h2 class="repo-detail-title" id="repoDetailName">Loading...</h2>
+                            <span class="repo-type-badge" id="repoDetailTypeBadge">private</span>
+                            <span class="status-badge SUCCESS" id="repoDetailStatusBadge"><span class="status-dot"></span>Active</span>
+                        </div>
+                        
+                        <div class="detail-tabs">
+                            <div class="detail-tab active" data-tab="overview">Overview</div>
+                            <div class="detail-tab" data-tab="tags">Tags</div>
+                            <div class="detail-tab" data-tab="settings">Settings</div>
+                        </div>
+                        
+                        <div class="detail-tab-content active" id="overview-tab">
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-info-circle"></i> Basic Information</h4>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Name</span>
+                                    <span class="repo-detail-value" id="repoDetailNameValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Description</span>
+                                    <span class="repo-detail-value" id="repoDetailDescriptionValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Visibility</span>
+                                    <span class="repo-detail-value" id="repoDetailVisibilityValue">--</span>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Pull Command</span>
+                                    <span class="repo-detail-value" id="repoDetailPullCommand">docker pull [repo]</span>
+                                </div>
+                            </div>
+                            
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-history"></i> Activity</h4>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Last Updated</span>
+                                    <span class="repo-detail-value" id="repoDetailUpdatedValue">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-tab-content" id="tags-tab">
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title">
+                                    <i class="fas fa-tags"></i> Image Tags
+                                </h4>
+                                <div class="projects-table-container">
+                                    <table class="projects-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tag</th>
+                                                <th>Size</th>
+                                                <th>Last Pushed</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="repoTagsList">
+                                            <!-- Tags will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-tab-content" id="settings-tab">
+                            <div class="repo-detail-section">
+                                <h4 class="repo-detail-section-title"><i class="fas fa-cog"></i> Repository Settings</h4>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Description</span>
+                                    <div style="display: flex; gap: 0.5rem; width: 100%;">
+                                        <input type="text" id="repoDescriptionInput" style="flex: 1; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                        <button class="action-btn" id="saveDescriptionBtn" style="padding: 0.5rem 1rem;">
+                                            <i class="fas fa-save"></i> Save
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="repo-detail-row">
+                                    <span class="repo-detail-label">Visibility</span>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <input type="radio" name="visibility" value="private" id="visibilityPrivate">
+                                            <span>Private</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <input type="radio" name="visibility" value="public" id="visibilityPublic">
+                                            <span>Public</span>
+                                        </label>
+                                        <button class="action-btn" id="saveVisibilityBtn" style="padding: 0.5rem 1rem; margin-left: auto;">
+                                            <i class="fas fa-save"></i> Save
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn" id="viewOnDockerHubBtn">
+                    <i class="fas fa-external-link-alt"></i> View on DockerHub
+                </button>
+                <button class="action-btn" id="deleteRepoBtn" style="background-color: #ef4444;">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        
+        const baseUrl = 'http://localhost:3000/api/dockerhub';
+        let currentRepository = null;
+        
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+            });
+        });
+        
+        // Detail tab switching functionality
+        document.querySelectorAll('.detail-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const container = tab.closest('.repo-detail-container');
+                
+                container.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+                container.querySelectorAll('.detail-tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                container.querySelector(`#${tabId}-tab`).classList.add('active');
+            });
+        });
+        function syncTheme() {
+        try {
+            if (window.parent !== window) {
+                const update = () => {
+                    const isDark = window.parent.document.documentElement.classList.contains('dark');
+                    
+                    document.body.classList.toggle('dark', isDark);
+                };
+                update();
+                const observer = new MutationObserver(update);
+                observer.observe(window.parent.document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+            }
+        } catch (e) {
+            console.warn('Could not access parent theme due to CORS', e);
+        }
+    }syncTheme()
+        
+        // Modal close buttons
+        document.getElementById('closeRepoModal').addEventListener('click', () => {
+            document.getElementById('repoDetailModal').classList.remove('active');
+        });
+        
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            const btn = document.getElementById('refreshBtn');
+            btn.classList.add('loading');
+            
+            setTimeout(() => {
+                btn.classList.remove('loading');
+                loadRepositories();
+            }, 1000);
+        });
+        
+        // Save description button
+        document.getElementById('saveDescriptionBtn').addEventListener('click', async () => {
+            const description = document.getElementById('repoDescriptionInput').value;
+            try {
+                await updateRepository(currentRepository, { description });
+                document.getElementById('repoDetailDescriptionValue').textContent = description;
+                showToast('Description updated successfully');
+                loadRepositories(); // Refresh the list to show updated description
+            } catch (error) {
+                showToast('Failed to update description', 'error');
+            }
+        });
+        
+        // Save visibility button
+        document.getElementById('saveVisibilityBtn').addEventListener('click', async () => {
+            const isPrivate = document.getElementById('visibilityPrivate').checked;
+            try {
+                await updateRepository(currentRepository, { is_private: isPrivate });
+                document.getElementById('repoDetailVisibilityValue').textContent = isPrivate ? 'Private' : 'Public';
+                showToast('Visibility updated successfully');
+                loadRepositories(); // Refresh the list to show updated visibility
+            } catch (error) {
+                showToast('Failed to update visibility', 'error');
+            }
+        });
+        
+        // Delete repository button
+        document.getElementById('deleteRepoBtn').addEventListener('click', async () => {
+            if (currentRepository && confirm(`Are you sure you want to delete repository '${currentRepository}'?`)) {
+                try {
+                    await deleteRepository(currentRepository);
+                    document.getElementById('repoDetailModal').classList.remove('active');
+                    showToast('Repository deleted successfully');
+                    loadRepositories();
+                } catch (error) {
+                    showToast('Failed to delete repository', 'error');
+                }
+            }
+        });
+        
+        // View on DockerHub button
+        document.getElementById('viewOnDockerHubBtn').addEventListener('click', () => {
+            if (currentRepository) {
+                window.open(`https://hub.docker.com/r/${currentRepository}`, '_blank');
+            }
+        });
+        
+        // Helper to get auth headers
+        function getAuthHeaders() {
+            const token = localStorage.getItem('accessToken');
+            return {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            };
+        }
+        
+        // Load repositories
+        async function loadRepositories() {
+            try {
+                const response = await fetch(`${baseUrl}/repositories`, {
+                    headers: getAuthHeaders()
+                });
+                const data = await response.json();
+                
+                // Update stats
+                document.getElementById('totalRepos').textContent = data.count || data.results?.length || '--';
+                if (data.results) {
+                    const privateCount = data.results.filter(repo => repo.is_private).length;
+                    const publicCount = data.results.length - privateCount;
+                    document.getElementById('privateRepos').textContent = privateCount;
+                    document.getElementById('publicRepos').textContent = publicCount;
+                }
+                
+                // Populate repositories table
+                const tbody = document.getElementById('repositories-list');
+                tbody.innerHTML = '';
+                
+                if (data.results) {
+                    data.results.forEach(repo => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${repo.name}</td>
+                            <td>${repo.description || 'No description'}</td>
+                            <td>${repo.is_private ? '<span class="status-badge ERROR">Private</span>' : '<span class="status-badge SUCCESS">Public</span>'}</td>
+                            <td>${repo.last_updated ? new Date(repo.last_updated).toLocaleString() : '--'}</td>
+                            <td>
+                                <button class="repo-action-btn view" onclick="viewRepository('${repo.name}')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button class="repo-action-btn delete" onclick="deleteRepositoryPrompt('${repo.name}')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        `;
+                        row.addEventListener('click', (e) => {
+                            if (!e.target.closest('button')) {
+                                viewRepository(repo.name);
+                            }
+                        });
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load repositories:', error);
+                showToast('Failed to load repositories', 'error');
+            }
+        }
+        
+        // View repository details
+        async function viewRepository(repoName) {
+            try {
+                currentRepository = repoName;
+                
+                // Get repository details
+                const repoResponse = await fetch(`${baseUrl}/repositories/${repoName}`, {
+                    headers: getAuthHeaders()
+                });
+                const repoData = await repoResponse.json();
+                
+                // Update modal title and name
+                document.getElementById('repoDetailTitle').textContent = `Repository: ${repoName}`;
+                document.getElementById('repoDetailName').textContent = repoName;
+                document.getElementById('repoDetailNameValue').textContent = repoName;
+                
+                // Update basic info
+                document.getElementById('repoDetailDescriptionValue').textContent = repoData.description || 'No description';
+                document.getElementById('repoDescriptionInput').value = repoData.description || '';
+                document.getElementById('repoDetailVisibilityValue').textContent = repoData.is_private ? 'Private' : 'Public';
+                document.getElementById('repoDetailPullCommand').textContent = `docker pull ${repoName}`;
+                
+                // Update visibility radio buttons
+                document.getElementById('visibilityPrivate').checked = repoData.is_private;
+                document.getElementById('visibilityPublic').checked = !repoData.is_private;
+                
+                // Update activity info
+                document.getElementById('repoDetailUpdatedValue').textContent = repoData.last_updated ? new Date(repoData.last_updated).toLocaleString() : '--';
+                
+                // Update type badge
+                const typeBadge = document.getElementById('repoDetailTypeBadge');
+                typeBadge.textContent = repoData.is_private ? 'private' : 'public';
+                typeBadge.className = `repo-type-badge ${repoData.is_private ? 'hosted' : 'proxy'}`;
+                
+                // Show modal
+                document.getElementById('repoDetailModal').classList.add('active');
+                
+                // Load tags for this repository
+                loadRepositoryTags(repoName);
+            } catch (error) {
+                console.error('Failed to load repository details:', error);
+                showToast('Failed to load repository details', 'error');
+            }
+        }
+        
+        // Load repository tags
+        async function loadRepositoryTags(repoName) {
+            try {
+                const response = await fetch(`${baseUrl}/repositories/${repoName}/tags`, {
+                    headers: getAuthHeaders()
+                });
+                const data = await response.json();
+                
+                const tbody = document.getElementById('repoTagsList');
+                tbody.innerHTML = '';
+                
+                if (data.results) {
+                    data.results.forEach(tag => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${tag.name}</td>
+                            <td>${tag.full_size ? `${(tag.full_size / 1024 / 1024).toFixed(1)} MB` : '--'}</td>
+                            <td>${tag.tag_last_pushed ? new Date(tag.tag_last_pushed).toLocaleString() : '--'}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load repository tags:', error);
+                showToast('Failed to load repository tags', 'error');
+            }
+        }
+        
+        // Update repository
+        async function updateRepository(repoName, updateFields) {
+            const response = await fetch(`${baseUrl}/repositories/${repoName}`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(updateFields)
+            });
+            return await response.json();
+        }
+        
+        // Delete repository
+        async function deleteRepository(repoName) {
+            const response = await fetch(`${baseUrl}/repositories/${repoName}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            return await response.json();
+        }
+        
+        // Prompt to delete repository
+        function deleteRepositoryPrompt(repoName) {
+            if (confirm(`Are you sure you want to delete repository '${repoName}'?`)) {
+                deleteRepository(repoName)
+                    .then(() => {
+                        showToast('Repository deleted successfully');
+                        loadRepositories();
+                    })
+                    .catch(error => {
+                        console.error('Failed to delete repository:', error);
+                        showToast('Failed to delete repository', 'error');
+                    });
+            }
+        }
+        
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRepositories();
+            
+            // Add toast styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .toast {
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    padding: 12px 24px;
+                    border-radius: 4px;
+                    background-color: #10b981;
+                    color: white;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    z-index: 1000;
+                    animation: slide-in 0.3s ease-out;
+                }
+                .toast.error {
+                    background-color: #ef4444;
+                }
+                .toast.fade-out {
+                    animation: fade-out 0.3s ease-out;
+                }
+                @keyframes slide-in {
+                    from { bottom: -50px; opacity: 0; }
+                    to { bottom: 20px; opacity: 1; }
+                }
+                @keyframes fade-out {
+                    from { opacity: 1; }
+                    to { opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>

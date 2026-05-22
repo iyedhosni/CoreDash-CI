@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configure a Pipeline Job</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              600: '#2563eb',
+              700: '#1d4ed8',
+            },
+            dark: {
+              800: '#1e293b',
+              900: '#0f172a',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-in-out',
+            'slide-up': 'slideUp 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(10px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --transition-speed: 0.3s;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      transition: background-color var(--transition-speed) ease;
+    }
+
+    body.dark {
+      background-color: #0f172a;
+      color: #e2e8f0;
+    }
+
+    /* Container styles */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      background-color: #ffffff;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: all var(--transition-speed) ease;
+    }
+
+    .dark .container {
+      background-color: #1e293b;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Form styles */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #334155;
+      transition: color var(--transition-speed) ease;
+    }
+
+    .dark .form-label {
+      color: #cbd5e1;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 0.9375rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      background-color: #ffffff;
+      color: #1e293b;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .dark .form-control {
+      background-color: #334155;
+      border-color: #475569;
+      color: #e2e8f0;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+
+    .dark .form-control:focus {
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+
+    textarea.form-control {
+      min-height: 200px;
+      resize: vertical;
+    }
+
+    /* Button styles */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: #ffffff;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .btn:hover {
+      background-color: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn i {
+      margin-right: 0.5rem;
+    }
+
+    /* Checkbox styles */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .checkbox-input {
+      width: 18px;
+      height: 18px;
+      margin-right: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.25rem;
+      appearance: none;
+      cursor: pointer;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .dark .checkbox-input {
+      border-color: #475569;
+      background-color: #334155;
+    }
+
+    .checkbox-input:checked {
+      background-color: #2563eb;
+      border-color: #2563eb;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd' /%3E%3C/svg%3E");
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 12px;
+    }
+
+    .checkbox-label {
+      font-weight: 500;
+      color: #334155;
+      cursor: pointer;
+      transition: color var(--transition-speed) ease;
+    }
+
+    .dark .checkbox-label {
+      color: #cbd5e1;
+    }
+
+    /* Alert styles */
+    .alert {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: flex-start;
+      animation: fadeIn 0.3s ease-in-out;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .alert.hidden {
+      display: none;
+    }
+
+    .alert i {
+      margin-right: 0.75rem;
+      font-size: 1.25rem;
+    }
+
+    .alert.success {
+      background-color: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .dark .alert.success {
+      background-color: #064e3b;
+      color: #a7f3d0;
+      border-color: #065f46;
+    }
+
+    .alert.error {
+      background-color: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .dark .alert.error {
+      background-color: #7f1d1d;
+      color: #fecaca;
+      border-color: #b91c1c;
+    }
+
+    /* Header styles */
+    .header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .dark .header {
+      border-bottom-color: #334155;
+    }
+
+    .header-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #2563eb;
+      color: white;
+      border-radius: 0.5rem;
+      margin-right: 1rem;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .dark .header-title {
+      color: #e2e8f0;
+    }
+
+    /* Code editor styles */
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .editor-btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      background-color: #e2e8f0;
+      color: #334155;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .dark .editor-btn {
+      background-color: #334155;
+      color: #cbd5e1;
+    }
+
+    .editor-btn:hover {
+      background-color: #cbd5e1;
+    }
+
+    .dark .editor-btn:hover {
+      background-color: #475569;
+    }
+
+    /* Syntax highlighting for the textarea */
+ .script-container {
+  display: flex;
+  position: relative;
+  font-family: monospace;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  min-height: 200px; /* fixed height or controlled height */
+}
+
+.script-line-numbers {
+  background-color: #f1f5f9;
+  border-right: 1px solid #e2e8f0;
+  text-align: right;
+  user-select: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem 0.5rem 0.75rem 0.25rem;
+  line-height: 1.5;
+  min-width: 2.5rem;
+  font-family: monospace;
+  white-space: pre;
+}
+
+.script-textarea {
+  flex: 1;
+  padding: 0.75rem;
+  font-family: monospace;
+  line-height: 1.5;
+  resize: none;
+  border: none;
+  outline: none;
+  overflow: auto;
+  height: 100%;
+  white-space: pre;
+  background-color: transparent;
+}
+
+/* Dark mode */
+.dark .script-line-numbers {
+  background-color: #1e293b;
+  border-right-color: #334155;
+  color: #334155;
+  padding-top: 15px;
+   line-height: 1.729;
+  margin-bottom: 2px;
+}
+
+.script-line-numbers {
+  overflow-y: hidden; /* prevent left scroll bar */
+} 
+
+.dark .script-textarea {
+  color: #f8fafc;
+}
+    
+
+    /* Responsive styles */
+    @media (max-width: 640px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .header-title {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+  <div class="container">
+    <div class="header">
+      <div class="header-icon">
+        <i class="fas fa-server"></i>
+      </div>
+      <h1 class="header-title">Configure Pipeline Job</h1>
+    </div>
+
+    <div id="message-container" class="mb-6 print:hidden">
+      <div id="success-message" class="hidden p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-200 flex items-center shadow-md" role="alert">
+        <i class="fas fa-check-circle fa-lg mr-3 text-green-500 dark:text-green-400"></i>
+        <div>
+          <span class="font-medium">Success!</span> <span id="success-text-content"></span>
+        </div>
+      </div>
+      <div id="error-message" class="hidden p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-800 dark:text-red-200 flex items-center shadow-md" role="alert">
+        <i class="fas fa-times-circle fa-lg mr-3 text-red-500 dark:text-red-400"></i>
+        <div>
+          <span class="font-medium">Error!</span> <span id="error-text-content"></span>
+        </div>
+      </div>
+    </div>
+
+    <form id="jenkins-form">
+      <div class="form-group">
+        <label for="name" class="form-label">Job Name</label>
+        <input type="text" id="name" name="name" class="form-control" required
+               pattern="^[A-Za-z0-9 _\\-]+$"
+               title="Letters, numbers, spaces, hyphens, and underscores only"
+               placeholder="e.g. thesis-build-pipeline">
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Description</label>
+        <textarea id="description" name="description" class="form-control" rows="2" 
+                  placeholder="Describe the purpose of this job..."></textarea>
+      </div>
+
+      <div class="checkbox-container">
+        <input type="checkbox" id="github-hook" name="githubHook" class="checkbox-input">
+        <label for="github-hook" class="checkbox-label">Enable GitHub webhook trigger</label>
+      </div>
+
+      <div class="form-group">
+        <div class="editor-header">
+          <label for="script" class="form-label">Pipeline Script</label>
+          <div class="editor-actions">
+            <button type="button" class="editor-btn" id="btn-format">
+              <i class="fas fa-align-left mr-1"></i> Format
+            </button>
+            <button type="button" class="editor-btn" id="btn-template">
+              <i class="fas fa-file-code mr-1"></i> Template
+            </button>
+          </div>
+        </div>
+        <div class="script-container">
+          <div class="script-line-numbers" id="line-numbers">1</div>
+          <textarea id="script" name="script" class="form-control script-textarea" required
+            placeholder="pipeline {
+  agent any
+  stages {
+    stage('Build') {
+      steps {
+        echo 'Building...'
+      }
+    }
+  }
+}"></textarea>
+        </div>
+      </div>
+      
+
+      <div class="flex justify-between items-center mt-6">
+        <button type="button" class="btn bg-gray-500 hover:bg-gray-600" id="btn-cancel">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button type="submit" id="btn-save" class="btn">
+          <i class="fas fa-save"></i> Save Pipeline
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" src="assets/js/new_item.js">
+
+  </script>
+  
+</body>
+</html>

@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Comprehensive Overview</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4e73df;
+            --primary-light: rgba(78, 115, 223, 0.1);
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --gray-100: #f8f9fc;
+            --gray-200: #e3e9f7;
+            --gray-600: #858796;
+            --gray-800: #5a5c69;
+        }
+
+        body {
+            background-color: var(--gray-100);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .card {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
+        }
+
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+            padding: 1rem 1.35rem;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .stat-card {
+            border-left: 0.25rem solid;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card .stat-icon {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            opacity: 0.2;
+            font-size: 5rem;
+            z-index: 0;
+        }
+
+        .stat-card-primary {
+            border-left-color: var(--primary);
+        }
+
+        .stat-card-success {
+            border-left-color: var(--success);
+        }
+
+        .stat-card-info {
+            border-left-color: var(--info);
+        }
+
+        .stat-card-warning {
+            border-left-color: var(--warning);
+        }
+
+        .stat-card-danger {
+            border-left-color: var(--danger);
+        }
+
+        .stat-card .stat-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .stat-change {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-card .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-card .stat-change.negative {
+            color: var(--danger);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .activity-item {
+            position: relative;
+            padding: 1rem 0;
+            border-left: 1px solid var(--gray-200);
+        }
+
+        .activity-item:last-child {
+            border-left: 1px solid transparent;
+        }
+
+        .activity-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 1.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            border: 2px solid white;
+        }
+
+        .activity-item-primary::before {
+            background-color: var(--primary);
+        }
+
+        .activity-item-success::before {
+            background-color: var(--success);
+        }
+
+        .activity-item-info::before {
+            background-color: var(--info);
+        }
+
+        .activity-item-warning::before {
+            background-color: var(--warning);
+        }
+
+        .activity-item-danger::before {
+            background-color: var(--danger);
+        }
+
+        .activity-time {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-content {
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 1rem;
+        }
+
+        .progress-thin {
+            height: 0.5rem;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary) 10%, #224abe 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 0;
+            transition: all 0.3s;
+        }
+
+        .sidebar-brand {
+            height: 4.375rem;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 800;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            letter-spacing: 0.05rem;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-brand-icon {
+            font-size: 2rem;
+            margin-right: 0.5rem;
+        }
+
+        .sidebar-divider {
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            margin: 0 1rem 1rem;
+        }
+
+        .sidebar-heading {
+            text-align: left;
+            padding: 0 1rem;
+            font-weight: 800;
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link.active {
+            color: white;
+            font-weight: 700;
+        }
+
+        .nav-link i {
+            font-size: 0.85rem;
+            margin-right: 0.25rem;
+        }
+
+        .nav-link .badge {
+            position: absolute;
+            right: 1rem;
+            font-size: 0.6rem;
+            font-weight: 700;
+        }
+
+        .topbar {
+            height: 4.375rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            background-color: white;
+        }
+
+        .topbar .nav-item .nav-link {
+            height: 4.375rem;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            color: #d1d3e2;
+        }
+
+        .topbar .nav-item .nav-link:hover {
+            color: #b7b9cc;
+        }
+
+        .topbar .nav-item .nav-link .badge-counter {
+            position: absolute;
+            transform: scale(0.7);
+            transform-origin: top right;
+            right: 0.25rem;
+            margin-top: -0.25rem;
+        }
+
+        .topbar .dropdown-list {
+            padding: 0;
+            border: none;
+            overflow: hidden;
+            width: 20rem;
+        }
+
+        .topbar .dropdown-list .dropdown-header {
+            background-color: var(--primary);
+            border: 1px solid var(--primary);
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            color: white;
+        }
+
+        .topbar .dropdown-list .dropdown-item {
+            white-space: normal;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #e3e6f0;
+        }
+
+        .topbar .dropdown-list .dropdown-item .icon-circle {
+            height: 2.5rem;
+            width: 2.5rem;
+            border-radius: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .topbar .dropdown-list .dropdown-item:active {
+            background-color: #eaecf4;
+            color: #3a3b45;
+        }
+
+        .topbar .dropdown-list .dropdown-item .text-truncate {
+            max-width: 13.375rem;
+        }
+
+        .topbar .dropdown-list .dropdown-item .small {
+            color: #b7b9cc;
+        }
+
+        .avatar {
+            height: 2rem;
+            width: 2rem;
+        }
+
+        .bg-gradient-primary {
+            background: linear-gradient(180deg, var(--primary) 10%, #224abe 100%);
+        }
+
+        .bg-gradient-success {
+            background: linear-gradient(180deg, var(--success) 10%, #13855c 100%);
+        }
+
+        .bg-gradient-info {
+            background: linear-gradient(180deg, var(--info) 10%, #258391 100%);
+        }
+
+        .bg-gradient-warning {
+            background: linear-gradient(180deg, var(--warning) 10%, #c28d0e 100%);
+        }
+
+        .bg-gradient-danger {
+            background: linear-gradient(180deg, var(--danger) 10%, #be2617 100%);
+        }
+
+        /* Dark theme adjustments */
+        [data-theme='dark'] body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        [data-theme='dark'] .card {
+            background-color: #1e293b;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme='dark'] .card-header {
+            background-color: #1e293b;
+            border-bottom-color: #334155;
+            color: #f1f5f9;
+        }
+
+        [data-theme='dark'] .stat-card .stat-title {
+            color: #94a3b8;
+        }
+
+        [data-theme='dark'] .stat-card .stat-value {
+            color: #f1f5f9;
+        }
+
+        [data-theme='dark'] .topbar {
+            background-color: #1e293b;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme='dark'] .topbar .nav-item .nav-link {
+            color: #94a3b8;
+        }
+
+        /* Dark mode text and icon colors */
+        [data-theme='dark'] .stat-card .stat-title,
+        [data-theme='dark'] .stat-card .stat-value,
+        [data-theme='dark'] .stat-card .stat-change,
+        [data-theme='dark'] .card-header,
+        [data-theme='dark'] .card-body,
+        [data-theme='dark'] .stat-icon,
+        [data-theme='dark'] .activity-time,
+        [data-theme='dark'] .activity-content,
+        [data-theme='dark'] .text-muted,
+        [data-theme='dark'] .text-gray-800,
+        [data-theme='dark'] .stat-card .stat-change i {
+            color: #e2e8f0 !important;
+        }
+
+        /* Dark mode card styling */
+        [data-theme='dark'] .card,
+        [data-theme='dark'] .card-header {
+            background-color: #1e293b;
+            border-color: #334155;
+        }
+
+        [data-theme='dark'] .card-body {
+            background-color: #1e293b;
+        }
+
+        /* Adjust icon opacity in dark mode */
+        [data-theme='dark'] .stat-card .stat-icon {
+            opacity: 0.35; /* Increased visibility */
+        }
+
+        /* Timeline styling for dark mode */
+        [data-theme='dark'] .activity-item {
+            border-left-color: #334155;
+            color: #e2e8f0;
+        }
+
+        [data-theme='dark'] .activity-item::before {
+            border-color: #1e293b !important;
+        }
+
+        /* Notification list background */
+        [data-theme='dark'] #adminNotificationList {
+            background-color: #1e293b;
+        }
+
+        /* Activity time text color */
+        [data-theme='dark'] .activity-time {
+            color: #94a3b8;
+        }
+
+        /* Stat card icons and changes */
+        [data-theme='dark'] .stat-card .stat-change i {
+            color: #e2e8f0 !important;
+        }
+
+        [data-theme='dark'] .stat-card .stat-change {
+            color: #94a3b8 !important;
+        }
+
+        /* Card shadows in dark mode */
+        [data-theme='dark'] .card {
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme='dark'] .card:hover {
+            box-shadow: 0 0.5rem 2rem 0 rgba(0, 0, 0, 0.4);
+        }
+
+        /* Ensure text in cards is visible */
+        [data-theme='dark'] .card,
+        [data-theme='dark'] .card *:not(.bx) {
+            color: #e2e8f0 !important;
+        }
+
+        /* Fix for specific elements that might be hard to see */
+        [data-theme='dark'] .text-dark {
+            color: #e2e8f0 !important;
+        }
+
+        [data-theme='dark'] .topbar .nav-item .nav-link:hover {
+            color: #cbd5e1;
+        }
+
+        [data-theme='dark'] .sidebar {
+            background: linear-gradient(180deg, #1e293b 10%, #0f172a 100%);
+            border-right: 1px solid #334155;
+        }
+
+        [data-theme='dark'] .sidebar-divider {
+            border-top-color: #334155;
+        }
+
+        [data-theme='dark'] .activity-item {
+            border-left-color: #334155;
+        }
+
+        [data-theme='dark'] .activity-time {
+            color: #94a3b8;
+        }
+
+        /* Chart legend text in dark mode */
+        [data-theme='dark'] #roleDistributionLegend li span {
+            color: #e2e8f0 !important;
+        }
+        [data-theme='dark'] #roleDistributionLegend li {
+            color: #e2e8f0 !important;
+        }
+
+        /* Ensure activity icons (Boxicons) are light-colored */
+        [data-theme='dark'] .activity-item .bx {
+            color: #e2e8f0 !important;
+        }
+
+        /* Explicit background colors for activity dots in dark mode */
+        [data-theme='dark'] .activity-item-primary::before {
+            background-color: var(--primary) !important;
+        }
+        [data-theme='dark'] .activity-item-success::before {
+            background-color: var(--success) !important;
+        }
+        [data-theme='dark'] .activity-item-info::before {
+            background-color: var(--info) !important;
+        }
+        [data-theme='dark'] .activity-item-warning::before {
+            background-color: var(--warning) !important;
+        }
+        [data-theme='dark'] .activity-item-danger::before {
+            background-color: var(--danger) !important;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                z-index: 1000;
+                left: -250px;
+                width: 250px;
+                transition: all 0.3s;
+            }
+            .sidebar.show {
+                left: 0;
+            }
+            .content-wrapper {
+                margin-left: 0 !important;
+            }
+        }
+
+        /* Animation for real-time updates */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 1s ease-in-out;
+        }
+
+        /* Smooth transitions for data changes */
+        .count-transition {
+            transition: color 0.3s ease;
+        }
+
+        /* New styles for better layout */
+        .dashboard-header {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #e3e6f0;
+            margin-bottom: 2rem;
+        }
+
+        .stat-cards-row {
+            margin-bottom: 2rem;
+        }
+
+        .chart-row {
+            margin-bottom: 2rem;
+        }
+
+        .content-section {
+            padding: 2rem 0;
+        }
+
+        .main-content {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-0">
+        <!-- Main Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
+                <!-- Begin Page Content -->
+                <div class="container-fluid main-content">
+                    <!-- Page Header -->
+                    <div class="dashboard-header">
+                        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                            <h1 class="h3 mb-0 text-gray-800">Dashboard Overview</h1>
+                            <div class="last-updated">Last updated: <span id="lastUpdated" class="font-weight-bold">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Stat Cards Row -->
+                    <div class="row stat-cards-row">
+                        <!-- Total Users Card -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card stat-card-primary h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="stat-title">TOTAL USERS</div>
+                                            <div class="stat-value count-transition" id="totalUsersCount">0</div>
+                                            <div class="stat-change" id="userPercentageChange">
+                                                <i class="bx bx-minus"></i> 0% from last week
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bx bx-group stat-icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Total Admins Card -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card stat-card-success h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="stat-title">TOTAL ADMINS</div>
+                                            <div class="stat-value count-transition" id="totalAdminsCount">0</div>
+                                            <div class="stat-change">
+                                                <i class="bx bx-info-circle"></i> Total registered admins
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bx bx-user-pin stat-icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Placeholder for additional stat cards -->
+                       
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card stat-card-warning h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="stat-title">TOTAL ACTIVE USERS</div>
+                                            <div class="stat-value count-transition" id="totalActiveUsersCount">0</div>
+                                            <div class="stat-change">
+                                                <i class="bx bx-user-check"></i> Currently active users
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bx bxs-user-check stat-icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card stat-card-info h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="stat-title">CURRENT TIME</div>
+                                            <div class="stat-value count-transition" id="currentTimeDisplay" style="font-size: 1.8rem;">00:00:00</div>
+                                            <div class="stat-change">
+                                                <i class="bx bx-calendar-event"></i> Local time
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bx bx-time stat-icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts Row -->
+                    <div class="row chart-row">
+                        <!-- Role Distribution Pie Chart -->
+                        <div class="col-xl-6 col-lg-6 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold">User Role Distribution</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="roleDistributionChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real-time Role Chart -->
+                        <div class="col-xl-6 col-lg-6 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold">Role Breakdown</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="realtimeRoleChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Row -->
+                    <div class="row">
+                        <!-- Recent Activity -->
+                        <div class="col-lg-12 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold">Recent Activity</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="adminNotificationList" style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+                                        <p class="text-center text-muted" id="adminNotificationLoading">Loading notifications...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /.container-fluid -->
+            </div>
+            <!-- End of Main Content -->
+        </div>
+        <!-- End of Content Wrapper -->
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="bx bx-up-arrow-alt"></i>
+    </a>
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0/dist/chartjs-adapter-luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
+    <script src="/config.js"></script>
+    <script>
+        // Make sure config is loaded
+        if (!window.ENV || !window.ENV.BACKEND_URL) {
+            console.error('Configuration not loaded. Please check config.js');
+            window.ENV = window.ENV || {};
+            window.ENV.BACKEND_URL = 'http://localhost:3000'; // Fallback URL
+        }
+    </script>
+    <script type="module" src="/assets/js/admin-dashboard.js"></script>
+
+    <script>
+        // Initialize charts when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async function() { 
+            // Role Distribution Chart (Pie Chart)
+            const roleDistributionCtx = document.getElementById('roleDistributionChart').getContext('2d');
+            async function fetchAndRenderUserRoleDistributionChart() {
+                try {
+                    const response = await fetch(`${window.ENV.BACKEND_URL}/api/users/roles/distribution`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                        }
+                    });
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const roleData = await response.json();
+
+                    const labels = roleData.map(item => item.role.charAt(0).toUpperCase() + item.role.slice(1)); // Capitalize first letter
+                    const data = roleData.map(item => item.count);
+
+                    const roleColors = {
+                        'admin': 'rgba(78, 115, 223, 0.8)',      // Primary
+                        'developpeur': 'rgba(54, 185, 204, 0.8)', // Info
+                        'professional_devops': 'rgba(28, 200, 138, 0.8)', // Success
+                        'superviseur': 'rgba(246, 194, 62, 0.8)',   // Warning
+                        'default': 'rgba(133, 135, 150, 0.8)' // Gray for others
+                    };
+
+                    const backgroundColors = roleData.map(item => roleColors[item.role.toLowerCase()] || roleColors['default']);
+                    const borderColors = backgroundColors.map(color => color.replace('0.8', '1')); // Make border fully opaque
+
+                    new Chart(roleDistributionCtx, {
+                        type: 'pie', // or 'doughnut'
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: backgroundColors,
+                                borderColor: borderColors,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top', // Display legend
+                                    labels: {
+                                        padding: 20 // Add some padding to legend items
+                                    }
+                                },
+                                title: {
+                                    display: false,
+                                    text: 'User Role Distribution'
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            if (context.parsed !== null) {
+                                                label += context.parsed;
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Failed to load user role distribution chart:', error);
+                    const chartContainer = document.getElementById('roleDistributionChart').parentNode;
+                    chartContainer.innerHTML = '<div class="alert alert-danger">Failed to load chart data.</div>';
+                }
+            }
+
+            await fetchAndRenderUserRoleDistributionChart(); // Call the new function
+
+            // Period selector for charts
+            document.querySelectorAll('[data-period]').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const period = this.getAttribute('data-period');
+                    let duration;
+                    
+                    switch(period) {
+                        case 'day':
+                            duration = 86400000; // 24 hours
+                            break;
+                        case 'week':
+                            duration = 604800000; // 7 days
+                            break;
+                        case 'month':
+                            duration = 2592000000; // 30 days
+                            break;
+                    }
+                    
+                    // userActivityChart.options.scales.x.realtime.duration = duration;
+                    // userActivityChart.update();
+                });
+            });
+
+            // Update last updated time
+            const lastUpdatedElement = document.getElementById('lastUpdated');
+            const lastUpdated = new Date();
+            lastUpdatedElement.textContent = lastUpdated.toLocaleString();
+
+            // Theme synchronization with parent
+            function syncTheme() {
+                try {
+                    if (window.parent !== window) {
+                        const update = () => {
+                            const isDark = window.parent.document.documentElement.classList.contains('dark');
+                            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                        };
+                        update();
+                        const observer = new MutationObserver(update);
+                        observer.observe(window.parent.document.documentElement, {
+                            attributes: true,
+                            attributeFilter: ['class']
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Could not access parent theme due to CORS', e);
+                    // Fallback to local storage if parent access fails
+                    const currentTheme = localStorage.getItem('theme') || 'light';
+                    document.documentElement.setAttribute('data-theme', currentTheme);
+                }
+            }
+            syncTheme();
+
+            // Helper functions for notifications
+            function getNotificationIcon(type, title = '') {
+                const lowerTitle = title ? title.trim().toLowerCase() : '';
+
+                // Priority 1: Keywords in title for major CRUD actions
+                if (lowerTitle.includes('created') || lowerTitle.includes('added') || lowerTitle.includes('new user registered') || lowerTitle.includes('registration')) {
+                    return 'bx bx-plus-circle';
+                }
+                if (lowerTitle.includes('updated') || lowerTitle.includes('modified') || lowerTitle.includes('changed') || lowerTitle.includes('updated profile') || lowerTitle.includes('role changed')) {
+                    return 'bx bx-pencil';
+                }
+                if (lowerTitle.includes('deleted') || lowerTitle.includes('removed')) {
+                    return 'bx bx-trash-alt';
+                }
+
+                // Priority 2: Specific type from notification if not covered by title keywords
+                switch (type) {
+                    case 'system_message': return 'bx bx-info-circle';
+                    case 'security_alert': return 'bx bx-shield-quarter';
+                    case 'new_login': return 'bx bx-log-in-circle'; 
+                    case 'data_export': return 'bx bx-download';
+                    case 'data_import': return 'bx bx-upload'; 
+                    case 'cron_job': return 'bx bx-bot';
+                    case 'task_assignment': return 'bx bx-task';
+                    case 'comment_mention': return 'bx bx-message-dots';
+                    
+                    // Types that might be redundant if titles are comprehensive but kept for fallback/specificity
+                    case 'user_added': // Fallbacks if title didn't contain keywords
+                    case 'project_creation':
+                    case 'file_upload':
+                        return 'bx bx-plus-circle'; 
+                    case 'user_updated':
+                    case 'role_changed':
+                        return 'bx bx-pencil'; 
+                    case 'user_deleted':
+                        return 'bx bx-trash-alt'; 
+                }
+                
+                // Default fallback icon if no other condition met
+                return 'bx bx-bell';
+            }
+
+            function getNotificationIconClass(type) {
+                // Using Bootstrap background utilities for consistency
+                switch (type) {
+                    case 'user_added': return 'bg-success text-white';
+                    case 'user_updated': return 'bg-info text-white';
+                    case 'user_deleted': return 'bg-danger text-white';
+                    case 'role_changed': return 'bg-warning text-dark'; // Ensure contrast with yellow
+                    case 'system_message': return 'bg-primary text-white';
+                    case 'security_alert': return 'bg-danger text-white';
+                    case 'new_login': return 'bg-info text-white';
+                    case 'data_export': return 'bg-secondary text-white';
+                    case 'data_import': return 'bg-secondary text-white';
+                    case 'cron_job': return 'bg-dark text-white';
+                    case 'project_creation': return 'bg-primary text-white';
+                    case 'task_assignment': return 'bg-info text-white';
+                    case 'comment_mention': return 'bg-warning text-dark';
+                    case 'file_upload': return 'bg-success text-white';
+                    default: return 'bg-light text-dark'; // Default, ensure visibility
+                }
+            }
+
+            function formatNotificationTime(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const seconds = Math.round((now - date) / 1000);
+                const minutes = Math.round(seconds / 60);
+                const hours = Math.round(minutes / 60);
+                const days = Math.round(hours / 24);
+
+                if (seconds < 5) return `just now`;
+                if (seconds < 60) return `${seconds} seconds ago`;
+                if (minutes < 60) return `${minutes} minutes ago`;
+                if (hours < 24) return `${hours} hours ago`;
+                return `${days} days ago`;
+            }
+
+            async function loadAdminNotifications() {
+                const adminNotificationList = document.getElementById('adminNotificationList');
+                const loadingMessage = document.getElementById('adminNotificationLoading');
+                if (!adminNotificationList) {
+                    console.warn('adminNotificationList element not found');
+                    return;
+                }
+
+                try {
+                    const userString = localStorage.getItem('user');
+                    if (!userString) {
+                        console.error('User data not found in localStorage for notifications.');
+                        if(loadingMessage) loadingMessage.textContent = 'User data not found.';
+                        return;
+                    }
+                    const user = JSON.parse(userString);
+                    if (!user || !user.id) {
+                        console.error('User ID not found in localStorage data for notifications.');
+                        if(loadingMessage) loadingMessage.textContent = 'User ID missing.';
+                        return;
+                    }
+
+                    const response = await fetch(`${window.ENV.BACKEND_URL}/api/notifications/${user.id}`);
+                    if (!response.ok) {
+                        const errorData = await response.text();
+                        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+                    }
+                    const notifications = await response.json();
+
+                    if(loadingMessage) loadingMessage.remove();
+
+                    if (!notifications || notifications.length === 0) {
+                        adminNotificationList.innerHTML = '<p class="text-center text-muted p-3">No notifications found.</p>';
+                        return;
+                    }
+                    
+                    adminNotificationList.innerHTML = ''; 
+
+                    const fragment = document.createDocumentFragment();
+                    notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Sort newest first
+
+                    notifications.forEach(item => {
+                        const notification = {
+                            id: item.id,
+                            title: item.Notification?.title || 'Notification',
+                            message: item.Notification?.message || 'No message available',
+                            created_at: item.created_at,
+                            type: item.Notification?.type || 'info'
+                        };
+
+                        const div = document.createElement('div');
+                        div.className = 'd-flex align-items-start p-2 border-bottom'; 
+                        div.innerHTML = `
+                            <div class="me-3 flex-shrink-0">
+                                <div class="${getNotificationIconClass(notification.type)}" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <i class="${getNotificationIcon(notification.type, notification.title)}"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0 fw-bold" style="font-size: 0.9rem;">${notification.title}</h6>
+                                <p class="mb-1 text-muted" style="font-size: 0.85rem; line-height: 1.3;">${notification.message}</p>
+                                <small class="text-muted" style="font-size: 0.75rem;">${formatNotificationTime(notification.created_at)}</small>
+                            </div>
+                        `;
+                        fragment.appendChild(div);
+                    });
+                    adminNotificationList.appendChild(fragment);
+
+                } catch (error) {
+                    console.error('Error loading admin notifications:', error);
+                    if(loadingMessage) loadingMessage.remove();
+                    adminNotificationList.innerHTML = '<p class="text-center text-danger p-3">Failed to load notifications. Check console for details.</p>';
+                }
+            }
+
+            // Load notifications for the admin dashboard
+            await loadAdminNotifications();
+
+            // Function to fetch and display total users count
+            async function fetchTotalUsersCount() {
+                try {
+                    const response = await fetch(`${window.ENV.BACKEND_URL}/api/users/count`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    document.getElementById('totalUsersCount').textContent = data.totalUsers;
+                    const percentageChangeEl = document.getElementById('userPercentageChange');
+                    if (data.percentageChange > 0) {
+                        percentageChangeEl.innerHTML = `<i class="bx bx-up-arrow-alt"></i> ${data.percentageChange}% from last week`;
+                        percentageChangeEl.className = 'stat-change positive';
+                    } else if (data.percentageChange < 0) {
+                        percentageChangeEl.innerHTML = `<i class="bx bx-down-arrow-alt"></i> ${Math.abs(data.percentageChange)}% from last week`;
+                        percentageChangeEl.className = 'stat-change negative';
+                    } else {
+                        percentageChangeEl.innerHTML = `<i class="bx bx-minus"></i> 0% from last week`;
+                        percentageChangeEl.className = 'stat-change';
+                    }
+                } catch (error) {
+                    console.error('Error fetching total users count:', error);
+                    document.getElementById('totalUsersCount').textContent = 'N/A';
+                }
+            }
+            await fetchTotalUsersCount();
+
+            // Function to fetch and display total admins count
+            async function fetchTotalAdminsCount() {
+                try {
+                    const response = await fetch(`${window.ENV.BACKEND_URL}/api/users/count/admins`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    document.getElementById('totalAdminsCount').textContent = data.totalAdmins;
+                } catch (error) {
+                    console.error('Error fetching total admins count:', error);
+                    document.getElementById('totalAdminsCount').textContent = 'N/A';
+                }
+            }
+            await fetchTotalAdminsCount();
+
+            // Function to fetch and display total active users count
+            async function fetchTotalActiveUsersCount() {
+                try {
+                    const response = await fetch(`${window.ENV.BACKEND_URL}/api/users/count/active`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    const activeUsersCountEl = document.getElementById('totalActiveUsersCount');
+                    if (activeUsersCountEl) {
+                        activeUsersCountEl.textContent = data.totalActiveUsers;
+                    }
+                } catch (error) {
+                    console.error('Error fetching total active users count:', error);
+                    const activeUsersCountEl = document.getElementById('totalActiveUsersCount');
+                    if (activeUsersCountEl) {
+                        activeUsersCountEl.textContent = 'N/A';
+                    }
+                }
+            }
+            await fetchTotalActiveUsersCount();
+
+            // Function to update current time display
+            function updateCurrentTime() {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                const currentTimeString = `${hours}:${minutes}:${seconds}`;
+                const timeDisplayElement = document.getElementById('currentTimeDisplay');
+                if (timeDisplayElement) {
+                    timeDisplayElement.textContent = currentTimeString;
+                }
+            }
+            updateCurrentTime(); // Initial call to display time immediately
+            setInterval(updateCurrentTime, 1000); // Update time every second
+
+        });
+    </script>
+</body>
+</html>

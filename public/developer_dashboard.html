@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              600: '#7c3aed',
+              700: '#6d28d9',
+            },
+            dark: {
+              800: '#1e293b',
+              900: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #f9fafb;
+      color: #111827;
+      transition-property: background-color, color;
+      transition-duration: 200ms;
+    }
+    
+    .dark body {
+      background-color: #0f172a;
+      color: #f3f4f6;
+    }
+    .card {
+      background-color: #fff;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      border: 1px solid #e5e7eb;
+    }
+    .dark .card {
+      background-color: #1e293b;
+      border-color: #334155;
+    }
+    .status-badge {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .status-completed {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .dark .status-completed {
+      background-color: #065f46;
+      color: #bbf7d0;
+    }
+    .status-in-progress {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+    .dark .status-in-progress {
+      background-color: #1e40af;
+      color: #bfdbfe;
+    }
+    .status-on-hold {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    .dark .status-on-hold {
+      background-color: #92400e;
+      color: #fde68a;
+    }
+    .priority-container {
+      min-height: 250px;
+    }
+    .priority-item {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: grab;
+      user-select: none;
+    }
+    .priority-item.dragging {
+      opacity: 0.8;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      cursor: grabbing;
+    }
+    .priority-item .drag-handle {
+      transition: color 0.2s ease;
+    }
+    .priority-item:hover .drag-handle {
+      color: #7c3aed; /* primary color */
+    }
+    .sortable-ghost {
+      opacity: 0.4;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script>
+    // Theme management
+    function syncTheme() {
+      try {
+        if (window.parent !== window) {
+          const update = () => {
+            const isDark = window.parent.document.documentElement.classList.contains('dark');
+            document.documentElement.classList.toggle('dark', isDark);
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+          };
+          update();
+          const observer = new MutationObserver(update);
+          observer.observe(window.parent.document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+          });
+        } else {
+          // Fallback to local storage or system preference
+          const savedTheme = localStorage.getItem('theme');
+          if (savedTheme === 'dark' || 
+              (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        }
+      } catch (e) {
+        console.warn('Could not access parent theme due to CORS', e);
+        // Fallback to local storage or system preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || 
+            (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = !document.documentElement.classList.contains('dark');
+      document.documentElement.classList.toggle('dark', isDark);
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      
+      // If we're in an iframe, also update the parent
+      if (window.parent !== window) {
+        try {
+          window.parent.postMessage({
+            type: 'setTheme',
+            theme: isDark ? 'dark' : 'light'
+          }, '*');
+        } catch (e) {
+          console.warn('Could not update parent theme', e);
+        }
+      }
+    }
+
+    // API Handling
+    async function authFetch(url, options = {}) {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const baseUrl = 'http://localhost:3000';
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          ...options.headers
+        };
+
+        const response = await fetch(`${baseUrl}${url}`, {
+          ...options,
+          headers
+        });
+
+        if (response.status === 401) {
+          // Handle unauthorized
+          console.error('Unauthorized access');
+          return null;
+        }
+
+        return response;
+      } catch (error) {
+        console.error('API request failed:', error);
+        return null;
+      }
+    }
+
+    // Data handling
+    let repositoriesData = [];
+    let newStatusChartInstance = null;
+    
+    // Notification helper functions
+    function getNotificationIcon(type, title = '') {
+      const lowerTitle = title ? title.trim().toLowerCase() : '';
+
+      // Priority 1: Keywords in title for major CRUD actions
+      if (lowerTitle.includes('created') || lowerTitle.includes('added') || lowerTitle.includes('new repository') || lowerTitle.includes('added to tracking')) {
+        return 'bx bx-plus-circle';
+      }
+      if (lowerTitle.includes('updated') || lowerTitle.includes('modified') || lowerTitle.includes('changed') || lowerTitle.includes('status changed')) {
+        return 'bx bx-pencil';
+      }
+      if (lowerTitle.includes('deleted') || lowerTitle.includes('removed')) {
+        return 'bx bx-trash-alt';
+      }
+      if (lowerTitle.includes('priority')) {
+        return 'bx bx-sort-alt-2';
+      }
+
+      // Priority 2: Specific type from notification
+      switch (type) {
+        case 'github': return 'bx bxl-github';
+        case 'system_message': return 'bx bx-info-circle';
+        case 'security_alert': return 'bx bx-shield-quarter';
+        case 'new_login': return 'bx bx-log-in-circle';
+        default: return 'bx bx-bell';
+      }
+    }
+
+    function getNotificationIconClass(type) {
+      // Using Tailwind classes for consistency
+      switch (type) {
+        case 'github': return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+        case 'system_message': return 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300';
+        case 'security_alert': return 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300';
+        case 'new_login': return 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300';
+        default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+      }
+    }
+
+    function formatNotificationTime(dateString) {
+      if (!dateString) return 'just now';
+      
+      const date = new Date(dateString);
+      const now = new Date();
+      const seconds = Math.round((now - date) / 1000);
+      const minutes = Math.round(seconds / 60);
+      const hours = Math.round(minutes / 60);
+      const days = Math.round(hours / 24);
+
+      if (seconds < 5) return 'just now';
+      if (seconds < 60) return `${seconds} seconds ago`;
+      if (minutes < 60) return `${minutes} minutes ago`;
+      if (hours < 24) return `${hours} hours ago`;
+      return `${days} days ago`;
+    }
+
+    async function loadRecentActivities() {
+      const activityList = document.getElementById('recentActivityList');
+      const loadingMessage = document.getElementById('activityLoading');
+      
+      if (!activityList) return;
+
+      try {
+        const userString = localStorage.getItem('user');
+        if (!userString) {
+          throw new Error('User data not found');
+        }
+        
+        const user = JSON.parse(userString);
+        if (!user || !user.id) {
+          throw new Error('User ID not found');
+        }
+
+        // Show loading state
+        if (loadingMessage) loadingMessage.style.display = 'block';
+        
+        // Get the authentication token from localStorage
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+          throw new Error('No authentication token found');
+        }
+
+        // Fetch notifications for the current user
+        const response = await fetch(`${window.ENV?.BACKEND_URL || 'http://localhost:3000'}/api/notifications/${user.id}`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.status === 401) {
+          // Handle unauthorized (e.g., token expired)
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('user');
+          window.location.href = '/login.html';
+          return;
+        }
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+        }
+        
+        const data = await response.json();
+        
+        // Hide loading message
+        if (loadingMessage) loadingMessage.style.display = 'none';
+        
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          activityList.innerHTML = `
+            <div class="text-center py-8 text-gray-400">
+              <i class='bx bx-bell-off text-2xl mb-2'></i>
+              <p>No recent activities found</p>
+            </div>`;
+          return;
+        }
+        
+        // Clear and update activity list
+        activityList.innerHTML = '';
+        
+        // Process and display notifications
+        data.forEach(item => {
+          const notification = {
+            id: item.id,
+            title: item.Notification?.title || 'Notification',
+            message: item.Notification?.message || 'No message available',
+            created_at: item.created_at || item.Notification?.createdAt,
+            type: item.Notification?.type || 'info'
+          };
+          
+          const activityItem = document.createElement('div');
+          activityItem.className = 'flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
+          
+          const iconClass = getNotificationIcon(notification.type, notification.title);
+          const iconBgClass = getNotificationIconClass(notification.type);
+          
+          activityItem.innerHTML = `
+            <div class="flex-shrink-0 mt-1">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center ${iconBgClass}">
+                <i class="${iconClass}"></i>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${notification.title}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">${notification.message}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                ${formatNotificationTime(notification.created_at)}
+              </p>
+            </div>
+          `;
+          
+          // Add click handler to mark as read if not already read
+          if (!item.is_read) {
+            activityItem.addEventListener('click', async () => {
+              try {
+                await fetch(`${window.ENV?.BACKEND_URL || 'http://localhost:3000'}/api/notifications/${notification.id}/read`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+                activityItem.classList.remove('unread');
+              } catch (error) {
+                console.error('Error marking notification as read:', error);
+              }
+            });
+          }
+          
+          activityList.appendChild(activityItem);
+        });
+        
+      } catch (error) {
+        console.error('Error loading recent activities:', error);
+        if (loadingMessage) loadingMessage.style.display = 'none';
+        
+        activityList.innerHTML = `
+          <div class="text-center py-4 text-red-500">
+            <i class='bx bx-error-circle text-xl mb-1'></i>
+            <p class="text-sm">Failed to load activities. ${error.message || 'Please try again later.'}</p>
+          </div>`;
+      }
+    }
+
+    async function fetchRepositories() {
+      try {
+        // Updated to use the correct endpoint for the GitHub tracker
+        const response = await authFetch('/api/github-tracker');
+        if (response && response.ok) {
+          repositoriesData = await response.json();
+          processRepositoryData();
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('Error fetching repositories:', error);
+        return false;
+      }
+    }
+
+    async function updateRepositoryPriority(repoName, priority) {
+      if (!repoName) {
+        console.error('Repository name is required');
+        return false;
+      }
+      
+      try {
+        const response = await authFetch(`/api/github-tracker/${encodeURIComponent(repoName)}/priority`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ priority })
+        });
+        
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Failed to update priority: ${error}`);
+        }
+        
+        return true;
+      } catch (error) {
+        console.error('Error updating repository priority:', error);
+        return false;
+      }
+    }
+
+    function processRepositoryData() {
+      const noPriorityMessage = document.getElementById('noPriorityMessage');
+      if (!repositoriesData || !repositoriesData.length) {
+        document.getElementById('totalRepos').textContent = '0';
+        document.getElementById('inProgressRepos').textContent = '0';
+        document.getElementById('completedRepos').textContent = '0';
+        document.getElementById('onHoldRepos').textContent = '0';
+        document.getElementById('avgDuration').textContent = 'N/A';
+        if (noPriorityMessage) {
+          noPriorityMessage.style.display = 'block';
+        }
+        // Clear charts if no data
+        updateNewStatusChart({});
+        return;
+      }
+
+      // Calculate status counts
+      const statusCounts = {
+        'In Progress': 0,
+        'Completed': 0,
+        'On Hold': 0
+      };
+
+      let completedDurations = [];
+
+      // Process each repository
+      repositoriesData.forEach(repo => {
+        statusCounts[repo.status] = (statusCounts[repo.status] || 0) + 1;
+        
+        // Calculate duration for completed projects
+        if (repo.status === 'Completed' && repo.createdAt && repo.updatedAt) {
+          const created = new Date(repo.createdAt);
+          const updated = new Date(repo.updatedAt);
+          const durationMs = updated - created;
+          const durationDays = durationMs / (1000 * 60 * 60 * 24);
+          completedDurations.push({
+            name: repo.name,
+            duration: durationDays
+          });
+        }
+      });
+
+      // Update status counts
+      document.getElementById('totalRepos').textContent = repositoriesData.length;
+      document.getElementById('inProgressRepos').textContent = statusCounts['In Progress'] || 0;
+      document.getElementById('completedRepos').textContent = statusCounts['Completed'] || 0;
+      document.getElementById('onHoldRepos').textContent = statusCounts['On Hold'] || 0;
+
+      // Calculate average duration
+      if (completedDurations.length > 0) {
+        const totalDuration = completedDurations.reduce((sum, repo) => sum + repo.duration, 0);
+        const avgDuration = totalDuration / completedDurations.length;
+        document.getElementById('avgDuration').textContent = `${avgDuration.toFixed(1)} days`;
+      } else {
+        document.getElementById('avgDuration').textContent = 'N/A';
+      }
+
+      // Update new charts
+      updateNewStatusChart(statusCounts);
+
+      // Update priority container
+      updatePriorityContainer();
+    }
+
+    function updatePriorityContainer() {
+      const container = document.getElementById('priorityContainer');
+      const noMessage = document.getElementById('noPriorityMessage');
+      let html = '';  // Initialize html variable
+      
+      // Clear current items but keep the no message element
+      Array.from(container.children).forEach(child => {
+        if (child.id !== 'noPriorityMessage') {
+          container.removeChild(child);
+        }
+      });
+
+      if (!repositoriesData.length) {
+        noMessage.style.display = 'block';
+        container.innerHTML = '';
+        return;
+      }
+
+      noMessage.style.display = 'none';
+
+      // Filter repos that are in progress or on hold
+      const activePriorityRepos = repositoriesData.filter(repo => 
+        repo.status === 'In Progress' || repo.status === 'On Hold'
+      );
+      
+      // Sort by priority (highest first)
+      const sortedRepos = [...activePriorityRepos].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      
+      sortedRepos.forEach(repo => {
+        // Determine status badge class
+        let statusClass = '';
+        switch(repo.status) {
+          case 'Completed':
+            statusClass = 'status-completed';
+            break;
+          case 'In Progress':
+            statusClass = 'status-in-progress';
+            break;
+          case 'On Hold':
+            statusClass = 'status-on-hold';
+            break;
+        }
+
+        html += `
+          <div class="priority-item flex items-center justify-between p-4 mb-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-shadow hover:shadow-md" 
+                data-id="${repo.id}">
+            <div class="flex items-center flex-1">
+              <i class="bx bx-menu-alt-left drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 mr-3 text-xl cursor-move"></i>
+              <div>
+                <div class="font-medium text-gray-800 dark:text-gray-200">${repo.name}</div>
+                <span class="status-badge ${statusClass} text-xs">${repo.status}</span>
+              </div>
+            </div>
+            <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Priority: <span class="priority-value">${repo.priority !== undefined ? repo.priority : 0}</span>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+      noMessage.style.display = sortedRepos.length > 0 ? 'none' : 'block';
+      
+      // Re-initialize sortable after updating the container
+      if (typeof Sortable !== 'undefined') {
+        initSortable();
+      } else {
+        console.error('Sortable.js is not loaded');
+      }
+    }
+
+    async function updateAllPriorities(repos) {
+      // Create an array of update promises
+      const updatePromises = [];
+      
+      repos.forEach((item, index) => {
+        const repoName = item.querySelector('.font-medium')?.textContent.trim();
+        if (!repoName) {
+          console.error('Could not find repository name in item:', item);
+          return;
+        }
+        
+        const newPriority = repos.length - index - 1; // 0 is highest priority
+        
+        // Skip if priority hasn't changed
+        const currentPriority = parseInt(item.querySelector('.priority-value')?.textContent || '0');
+        if (currentPriority === newPriority) return;
+        
+        // Add to update promises
+        updatePromises.push(
+          updateRepositoryPriority(repoName, newPriority)
+            .then(success => {
+              if (success) {
+                // Update the UI immediately
+                const prioritySpan = item.querySelector('.priority-value');
+                if (prioritySpan) {
+                  prioritySpan.textContent = newPriority;
+                }
+              }
+              return success;
+            })
+            .catch(error => {
+              console.error(`Error updating priority for ${repoName}:`, error);
+              return false;
+            })
+        );
+      });
+      
+      if (updatePromises.length === 0) {
+        console.log('No priority updates needed');
+        return true;
+      }
+      
+      try {
+        const results = await Promise.all(updatePromises);
+        return results.every(success => success);
+      } catch (error) {
+        console.error('Error updating priorities:', error);
+        return false;
+      }
+    }
+
+    function initSortable() {
+      const container = document.getElementById('priorityContainer');
+      if (!container) {
+        console.error('Priority container not found');
+        return;
+      }
+
+      // Clear any existing Sortable instance
+      if (container.sortableInstance) {
+        container.sortableInstance.destroy();
+      }
+
+      container.sortableInstance = new Sortable(container, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        handle: '.drag-handle',
+        onStart: function(evt) {
+          evt.item.classList.add('dragging');
+        },
+        onEnd: async function(evt) {
+          evt.item.classList.remove('dragging');
+          
+          const repos = Array.from(container.querySelectorAll('.priority-item'));
+          
+          try {
+            // Update all priorities based on the new order
+            const success = await updateAllPriorities(repos);
+            
+            if (!success) {
+              // If update failed, revert the UI
+              await fetchRepositories();
+            }
+          } catch (error) {
+            console.error('Error updating priorities:', error);
+            // Revert the UI on error
+            await fetchRepositories();
+          }
+        }
+      });
+    }
+
+    function updateNewStatusChart(statusCounts) {
+      const ctx = document.getElementById('newStatusChart').getContext('2d');
+      const labels = ['In Progress', 'Completed', 'On Hold'];
+      const data = [
+        statusCounts['In Progress'] || 0,
+        statusCounts['Completed'] || 0,
+        statusCounts['On Hold'] || 0
+      ];
+
+      if (newStatusChartInstance) {
+        newStatusChartInstance.destroy();
+      }
+
+      newStatusChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: [
+              'rgba(59, 130, 246, 0.7)', // blue-500
+              'rgba(16, 185, 129, 0.7)', // green-500
+              'rgba(245, 158, 11, 0.7)'  // amber-500
+            ],
+            borderColor: [
+              'rgba(59, 130, 246, 1)',
+              'rgba(16, 185, 129, 1)',
+              'rgba(245, 158, 11, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  if (context.parsed !== null) {
+                    label += context.parsed;
+                  }
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Mock data for initial testing
+    function loadMockData() {
+      repositoriesData = [
+        {
+          id: 1,
+          name: 'API Gateway Service',
+          status: 'Completed',
+          createdAt: '2024-04-01T00:00:00Z',
+          updatedAt: '2024-04-15T00:00:00Z',
+          priority: 5
+        },
+        {
+          id: 2,
+          name: 'User Authentication',
+          status: 'In Progress',
+          createdAt: '2024-04-10T00:00:00Z',
+          updatedAt: '2024-05-20T00:00:00Z',
+          priority: 10
+        },
+        {
+          id: 3,
+          name: 'Payment Processing',
+          status: 'On Hold',
+          createdAt: '2024-04-15T00:00:00Z',
+          updatedAt: '2024-05-10T00:00:00Z',
+          priority: 8
+        },
+        {
+          id: 4,
+          name: 'Dashboard Frontend',
+          status: 'In Progress',
+          createdAt: '2024-05-01T00:00:00Z',
+          updatedAt: '2024-05-25T00:00:00Z',
+          priority: 9
+        },
+        {
+          id: 5,
+          name: 'Notification Service',
+          status: 'Completed',
+          createdAt: '2024-03-15T00:00:00Z',
+          updatedAt: '2024-04-10T00:00:00Z',
+          priority: 6
+        }
+      ];
+      
+      processRepositoryData();
+    }
+
+    // Initial setup
+    async function init() {
+      syncTheme();
+      
+      // Setup event listeners for theme toggle and refresh
+      const themeToggleButton = document.getElementById('themeToggle');
+      if (themeToggleButton) {
+        themeToggleButton.addEventListener('click', toggleTheme);
+      } else {
+        console.error("Theme toggle button not found!");
+      }
+
+      const refreshButton = document.getElementById('refreshBtn');
+      if (refreshButton) {
+        refreshButton.addEventListener('click', () => {
+          fetchRepositories(); // Re-fetch data on refresh
+        });
+      } else {
+        console.error("Refresh button not found!");
+      }
+
+      // Try to fetch real data
+      const success = await fetchRepositories();
+      
+      // If API is not available, load mock data
+      if (!success) {
+        loadMockData();
+      }
+    }
+
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', () => {
+      // Sync theme with parent
+      syncTheme();
+      
+      // Initialize the rest of the app
+      init();
+      
+      // Load recent activities
+      loadRecentActivities();
+      
+      // Add refresh button event listener
+      const refreshBtn = document.getElementById('refreshActivityBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          refreshBtn.querySelector('i').classList.add('animate-spin');
+          loadRecentActivities().finally(() => {
+            refreshBtn.querySelector('i').classList.remove('animate-spin');
+          });
+        });
+      }
+      
+      // Add theme toggle event listener
+      const themeToggle = document.getElementById('themeToggle');
+      if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+      }
+    });
+    
+    // Listen for theme changes from parent
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'setTheme') {
+        document.documentElement.classList.toggle('dark', event.data.theme === 'dark');
+      }
+    });
+  </script>
+</head>
+<body class="min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 ">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+      <div class="flex items-center gap-3">
+        <i class="bx bx-code-alt text-3xl text-primary-600"></i>
+        <h1 class="text-2xl font-bold">Developer Dashboard</h1>
+      </div>
+      <div class="flex items-center gap-4">
+   
+        <button id="refreshBtn" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2">
+          <i class="bx bx-refresh"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="card p-4">
+        <div class="flex items-center">
+          <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-full mr-4">
+            <i class="bx bx-git-repo-forked text-xl text-blue-600 dark:text-blue-300"></i>
+          </div>
+          <div>
+            <h3 class="text-gray-500 dark:text-gray-400 text-sm">Total Repositories</h3>
+            <p class="text-2xl font-bold" id="totalRepos">-</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center">
+          <div class="p-3 bg-indigo-100 dark:bg-indigo-900 rounded-full mr-4">
+            <i class="bx bx-loader-circle text-xl text-indigo-600 dark:text-indigo-300"></i>
+          </div>
+          <div>
+            <h3 class="text-gray-500 dark:text-gray-400 text-sm">In Progress</h3>
+            <p class="text-2xl font-bold" id="inProgressRepos">-</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center">
+          <div class="p-3 bg-green-100 dark:bg-green-900 rounded-full mr-4">
+            <i class="bx bx-check-circle text-xl text-green-600 dark:text-green-300"></i>
+          </div>
+          <div>
+            <h3 class="text-gray-500 dark:text-gray-400 text-sm">Completed</h3>
+            <p class="text-2xl font-bold" id="completedRepos">-</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center">
+          <div class="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full mr-4">
+            <i class="bx bx-pause-circle text-xl text-yellow-600 dark:text-yellow-300"></i>
+          </div>
+          <div>
+            <h3 class="text-gray-500 dark:text-gray-400 text-sm">On Hold</h3>
+            <p class="text-2xl font-bold" id="onHoldRepos">-</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section for Average Duration and Recent Activity -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <!-- Average Project Duration Card -->
+       <div>
+      <div class="card p-4">
+        <h3 class="text-lg font-semibold mb-4">Average Project Duration</h3>
+        <div class="flex items-center">
+          <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-full mr-4">
+            <i class="bx bx-time text-xl text-purple-600 dark:text-purple-300"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold" id="avgDuration">-</p>
+            <p class="text-sm text-gray-500">Average time to complete projects</p>
+          </div>
+        </div>
+      </div>
+      <div class="card p-4" style="margin-top: 1rem;">
+        <h3 class="text-lg font-semibold mb-4">Repository Status Distribution</h3>
+        <div class="relative h-64 md:h-80">
+          <canvas id="newStatusChart"></canvas>
+        </div>
+      </div>
+    </div>
+      <!-- Recent Activity Card -->
+      <div class="card p-4">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">Recent Activity</h3>
+          <button id="refreshActivityBtn" class="p-1 text-gray-500 hover:text-primary-600 dark:hover:text-primary-400">
+            <i class="bx bx-refresh"></i>
+          </button>
+        </div>
+        <div class="space-y-4  overflow-y-auto pr-2" id="recentActivityList" style="max-height: 28rem;">
+          <div class="text-center py-8 text-gray-400" id="activityLoading">
+            <i class='bx bx-loader-alt bx-spin text-2xl mb-2'></i>
+            <p>Loading activities...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+ 
+
+    <!-- Priority Management -->
+    <section class="card p-4 mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Repository Priority Management</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Drag and drop to reorder priorities</p>
+      </div>
+      
+      <div class="priority-container p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg" id="priorityContainer">
+        <!-- Priority items will be inserted here dynamically -->
+        <div class="text-center py-8 text-gray-400" id="noPriorityMessage">
+          <i class="bx bx-list-ul text-3xl mb-2"></i>
+          <p>No repositories to prioritize</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

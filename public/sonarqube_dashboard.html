@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>SonarQube Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .ce-show-more-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.5rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 1.375rem;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .ce-show-more-btn:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .ce-show-more-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .ce-show-more-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5);
+        }
+
+        .dark .ce-show-more-btn {
+            background-color: #3b82f6;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+        }
+
+        .dark .ce-show-more-btn:hover {
+            background-color: #2563eb;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+        }
+
+        .ce-show-more-btn i {
+            transition: transform 0.2s ease;
+        }
+
+        .ce-show-more-btn:hover i {
+            transform: translateY(1px);
+        }
+    </style>
+    <link rel="stylesheet" href="assets/css/sonarqube_dashboard.css">
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">
+                <i class="fas fa-wave-square"></i>
+                <span>SonarQube Dashboard</span>
+            </h1>
+            <button id="refresh-btn" class="refresh-btn">
+                <i class="fas fa-sync-alt icon"></i>
+                <i class="fas fa-spinner spinner"></i>
+                <span>Refresh</span>
+            </button>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-title">Total Projects</div>
+                <div class="stat-value" id="total-projects">0</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>2 from last week</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Quality Gate Passed</div>
+                <div class="stat-value" id="passed-projects">0</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>5% from last week</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Quality Gate Failed</div>
+                <div class="stat-value" id="failed-projects">0</div>
+                <div class="stat-change negative">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>1 from yesterday</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Average Coverage</div>
+                <div class="stat-value" id="avg-coverage">0%</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>2% improvement</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="projects-table-container">
+            <div id="projects-container">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <h3 class="empty-state-title">Loading Projects...</h3>
+                    <p class="empty-state-description">Please wait while we fetch the latest project information from SonarQube</p>
+                </div>
+            </div>
+        </div>
+        <div class="mt-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold dark:text-white">
+                    <i class="fas fa-cogs mr-2"></i> Recent Analyses
+                </h2>
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <select id="ce-sort-select" class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="duration">Longest Duration</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="ce-filters" class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                <button class="ce-filter-btn active" data-filter="all">All</button>
+                <button class="ce-filter-btn" data-filter="SUCCESS">Success</button>
+                <button class="ce-filter-btn" data-filter="ERROR">Failed</button>
+                <button class="ce-filter-btn" data-filter="IN_PROGRESS">In Progress</button>
+                <button class="ce-filter-btn" data-filter="PENDING">Pending</button>
+            </div>
+            
+            <div id="ce-activity-container" class="space-y-3">
+                <div class="ce-empty-state">
+                    <div class="ce-empty-icon">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <h3 class="ce-empty-title">Loading activity...</h3>
+                    <p class="ce-empty-description">Fetching recent analysis tasks</p>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- Project Details Modal -->
+<div id="project-details-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-90vh overflow-y-auto">
+        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+            <h3 class="text-xl font-semibold dark:text-white">Project Details</h3>
+            <button id="close-details-modal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-6" id="project-details-content">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+</div>
+<!-- CE Task Details Modal -->
+<div id="ce-task-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-50">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-90vh overflow-y-auto">
+    <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+      <h3 class="text-xl font-semibold dark:text-white">Task Details</h3>
+      <button id="close-ce-task-modal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="p-6 space-y-4" id="ce-task-details-content">
+      <!-- Content will load here -->
+    </div>
+  </div>
+</div>
+    <script src="assets/js/sonarqube_dashboard.js"></script>
+</body>
+</html>

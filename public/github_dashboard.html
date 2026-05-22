@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub ExplorerS</title>
+  <meta name="description" content="The most advanced GitHub repository explorer with 3D visualizations, AI insights, and real-time analytics">
+  <link rel="stylesheet" href="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://kit.fontawesome.com/15d8a1b7e3.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="assets/css/exploir_github.css">
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-[var(--bg-dark)] text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <!-- Animated background particles -->
+  <div id="particles-js" class="fixed inset-0 -z-10 opacity-20 dark:opacity-10"></div>
+  
+  <!-- Floating sparkles -->
+  <div id="sparkles-container" class="fixed inset-0 overflow-hidden pointer-events-none"></div>
+  
+  <div class="dashboard-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Enhanced Header with 3D effect -->
+    <header id="dashboardHeader" class="dashboard-header glass-effect p-6 rounded-2xl mb-8 shadow-lg dark:glow-effect relative overflow-hidden" style="display: none;">
+      <div class="absolute inset-0 bg-gradient-to-r from-[var(--primary-dark)]/10 to-[var(--secondary)]/10"></div>
+      <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-4">
+          <div class="relative">
+            <i class="fab fa-github text-5xl gradient-text animate-float"></i>
+            <div class="absolute -inset-4 bg-[var(--primary)] rounded-full opacity-20 blur-md"></div>
+          </div>
+          <div>
+            <h1 class="dashboard-title text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]">
+              GitHub <span class="dark:neon-text">Explorer </span>
+            </h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400">GitHub Analytics & Visualization Suite</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <div class="relative group">
+            <button class="theme-toggle p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300" onclick="toggleTheme()">
+              <i class="fas fa-moon dark:hidden text-[var(--primary)]"></i>
+              <i class="fas fa-sun hidden dark:block text-yellow-300"></i>
+            </button>
+            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-900 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              Toggle Theme
+            </div>
+          </div>
+          
+          <div class="relative group">
+            <button class="refresh-btn flex items-center gap-2 px-4 py-3 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white transition-all duration-300" onclick="fetchEverything()">
+              <span class="icon"><i class="fas fa-sync-alt"></i></span>
+              <span class="spinner hidden"><i class="fas fa-spinner fa-spin"></i></span>
+              <span>Refresh</span>
+            </button>
+            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-900 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              Reload All Data
+            </div>
+          </div>
+          
+          <button onclick="showAISearch()" class="ai-search-btn flex items-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-[var(--accent)] to-[var(--accent)] text-white hover:shadow-lg transition-all duration-300">
+            <i class="fas fa-robot"></i>
+            <span>AI Search</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="space-y-8">
+      <!-- Search Section with Floating Labels -->
+            <section class="search-section glass-effect rounded-2xl shadow-lg pt-6 px-6">
+        <div class="mb-6 flex flex-col md:flex-row gap-4">
+          <div class="flex-1 relative">
+            <input id="username" type="text" class="peer border-0 bg-white/80 dark:bg-gray-800/90 focus:bg-white dark:focus:bg-gray-800 p-4 rounded-xl w-full shadow-sm focus:ring-2 focus:ring-[var(--primary)] focus:outline-none transition-all duration-300 h-14 pl-12" 
+                   placeholder="GitHub username or repository URL " />
+            
+          </div>
+          <div class="flex gap-2">
+            <button onclick="fetchEverything()" class="action-btn h-14 px-6 bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white rounded-xl flex items-center justify-center gap-2 transition-all duration-300">
+              <i class="fas fa-rocket"></i>
+              <span>Launch</span>
+            </button>
+            
+          </div>
+        </div>
+        
+        <!-- Quick Stats (shown after search) -->
+        <div id="quickStats" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <div class="stat-card bg-white/80 dark:bg-gray-800/90 p-4 rounded-xl shadow-sm">
+            <div class="stat-title text-sm text-gray-500 dark:text-gray-400">Repositories</div>
+            <div class="stat-value text-2xl font-bold" id="repoCount">0</div>
+          </div>
+          <div class="stat-card bg-white/80 dark:bg-gray-800/90 p-4 rounded-xl shadow-sm">
+            <div class="stat-title text-sm text-gray-500 dark:text-gray-400">Total Stars</div>
+            <div class="stat-value text-2xl font-bold" id="starCount">0</div>
+          </div>
+          <div class="stat-card bg-white/80 dark:bg-gray-800/90 p-4 rounded-xl shadow-sm">
+            <div class="stat-title text-sm text-gray-500 dark:text-gray-400">Total Forks</div>
+            <div class="stat-value text-2xl font-bold" id="forkCount">0</div>
+          </div>
+          <div class="stat-card bg-white/80 dark:bg-gray-800/90 p-4 rounded-xl shadow-sm">
+            <div class="stat-title text-sm text-gray-500 dark:text-gray-400">Most Used Language</div>
+            <div class="stat-value text-2xl font-bold" id="topLanguage">-</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Navigation Tabs with Indicator -->
+      <div class="tabs-container relative">
+        <div class="tabs flex gap-1 p-1 bg-white/80 dark:bg-gray-800/90 rounded-xl shadow-sm">
+          <div class="tab active flex-1 text-center py-3 px-4 rounded-lg cursor-pointer transition-all duration-300" 
+               onclick="switchTab('repos')" data-tab="repos">
+            <i class="fas fa-code-branch mr-2"></i> Repositories
+          </div>
+          <div class="tab flex-1 text-center py-3 px-4 rounded-lg cursor-pointer transition-all duration-300" 
+               onclick="switchTab('profile')" data-tab="profile">
+            <i class="fas fa-user mr-2"></i> Profile
+          </div>
+          <div class="tab flex-1 text-center py-3 px-4 rounded-lg cursor-pointer transition-all duration-300" 
+               onclick="switchTab('gists')" data-tab="gists">
+            <i class="fas fa-file-code mr-2"></i> Gists
+          </div>
+          <div class="tab flex-1 text-center py-3 px-4 rounded-lg cursor-pointer transition-all duration-300" 
+               onclick="switchTab('insights')" data-tab="insights">
+            <i class="fas fa-chart-pie mr-2"></i> Insights
+          </div>
+          <div class="tab-indicator absolute bottom-0 left-0 h-1 bg-[var(--primary)] rounded-full transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <!-- Tab Contents -->
+      <section id="repos" class="tab-content active">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="reposContainer"></div>
+        <div id="reposLoader" class="hidden text-center py-8">
+          <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary)]"></div>
+        </div>
+        <div class="text-center mt-6">
+          <button id="loadMoreBtn" class="hidden action-btn px-6 py-3 bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white rounded-xl" onclick="loadMoreRepos()">
+            <i class="fas fa-plus-circle mr-2"></i> Load More Repositories
+          </button>
+        </div>
+      </section>
+
+      <section id="profile" class="tab-content hidden">
+        <div class="profile-container glass-effect p-6 rounded-2xl shadow-lg">
+          <div id="profileContent" class="text-center">
+            <div class="empty-state">
+              <div class="empty-state-icon text-6xl text-gray-400 mb-4">
+                <i class="fas fa-user-circle"></i>
+              </div>
+              <div class="empty-state-title text-xl font-semibold mb-2">
+                No Profile Loaded
+              </div>
+              <div class="empty-state-description text-gray-500 dark:text-gray-400">
+                Enter a GitHub username and click "Launch" to view profile information
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="gists" class="tab-content hidden">
+        <div class="gists-container glass-effect p-6 rounded-2xl shadow-lg">
+          <div id="gistsContent" class="grid grid-cols-1 gap-4">
+            <div class="empty-state">
+              <div class="empty-state-icon text-6xl text-gray-400 mb-4">
+                <i class="fas fa-file-code"></i>
+              </div>
+              <div class="empty-state-title text-xl font-semibold mb-2">
+                No Gists Loaded
+              </div>
+              <div class="empty-state-description text-gray-500 dark:text-gray-400">
+                Enter a GitHub username and click "Launch" to view gists
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="insights" class="tab-content hidden">
+        <div class="insights-container grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="insight-card glass-effect p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-chart-line text-[var(--primary)]"></i> Language Distribution
+            </h3>
+            <div class="language-graph" id="languageChart"></div>
+          </div>
+          <div class="insight-card glass-effect p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-project-diagram text-[var(--secondary)]"></i> Repository Network
+            </h3>
+            <div class="network-graph" id="networkGraph"></div>
+          </div>
+          <div class="insight-card glass-effect p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-star text-yellow-400"></i> Star History
+            </h3>
+            <canvas id="starHistoryChart"></canvas>
+          </div>
+          <div class="insight-card glass-effect p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-code-branch text-[var(--accent)]"></i> Commit Activity
+            </h3>
+            <canvas id="commitActivityChart"></canvas>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Repository Modal -->
+  <div id="repoModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="modal-content bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-95">
+      <div class="modal-header flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="modal-title text-2xl font-bold flex items-center gap-2">
+          <i class="fab fa-github"></i>
+          <span id="modalRepoTitle">Repository Details</span>
+        </h2>
+        <button class="modal-close p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="closeModal()">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="modal-body overflow-auto" style="max-height: calc(90vh - 120px)">
+        <div class="detail-tabs flex border-b border-gray-200 dark:border-gray-700 px-6">
+          <div class="detail-tab active py-4 px-6 border-b-2 border-[var(--primary)] cursor-pointer" onclick="switchDetailTab('overview')">
+            <i class="fas fa-info-circle mr-2"></i> Overview
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('files')">
+            <i class="fas fa-folder-open mr-2"></i> Files
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('commits')">
+            <i class="fas fa-code-commit mr-2"></i> Commits
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('readme')">
+            <i class="fas fa-book mr-2"></i> README
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('contributors')">
+            <i class="fas fa-users mr-2"></i> Contributors
+          </div>
+          <div class="detail-tab py-4 px-6 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="switchDetailTab('analytics')">
+            <i class="fas fa-chart-bar mr-2"></i> Analytics
+          </div>
+        </div>
+        
+        <div id="overviewTab" class="detail-tab-content active p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+              <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-info-circle text-[var(--primary)]"></i> Repository Info
+              </h3>
+              <div id="repoInfoContent" class="space-y-3"></div>
+            </div>
+            
+            <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+              <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-chart-line text-[var(--primary)]"></i> Statistics
+              </h3>
+              <div id="repoStatsContent" class="space-y-3"></div>
+            </div>
+          </div>
+          
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl mt-6">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-code text-[var(--primary)]"></i> Code Analysis
+            </h3>
+            <div id="repoAnalysisContent" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="flex flex-col items-center">
+                <div class="radial-progress text-[var(--primary)]" style="--value:0">0%</div>
+                <div class="text-sm mt-2">Code Quality</div>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="radial-progress text-[var(--secondary)]" style="--value:0">0%</div>
+                <div class="text-sm mt-2">Documentation</div>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="radial-progress text-[var(--accent)]" style="--value:0">0%</div>
+                <div class="text-sm mt-2">Test Coverage</div>
+              </div>
+              <div class="flex flex-col items-center">
+                <div class="radial-progress text-purple-500" style="--value:0">0%</div>
+                <div class="text-sm mt-2">Maintainability</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div id="filesTab" class="detail-tab-content p-6 hidden">
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-folder-open text-[var(--primary)]"></i> File Explorer
+            </h3>
+            <div class="breadcrumb mb-4 flex items-center gap-2 text-sm flex-wrap" id="breadcrumb"></div>
+            <div class="file-explorer" id="fileExplorerContent"></div>
+          </div>
+        </div>
+        
+        <div id="commitsTab" class="detail-tab-content p-6 hidden">
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-code-commit text-[var(--primary)]"></i> Recent Commits
+            </h3>
+            <div id="commitsContent" class="space-y-4"></div>
+          </div>
+        </div>
+        
+        <div id="readmeTab" class="detail-tab-content p-6 hidden">
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-book text-[var(--primary)]"></i> README
+            </h3>
+            <div id="readmeContent" class="markdown-body"></div>
+          </div>
+        </div>
+        
+        <div id="contributorsTab" class="detail-tab-content p-6 hidden">
+          <div class="repo-detail-section bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+            <h3 class="repo-detail-section-title text-lg font-semibold mb-4 flex items-center gap-2">
+              <i class="fas fa-users text-[var(--primary)]"></i> Contributors
+            </h3>
+            <div id="contributorsContent" class="flex flex-wrap gap-4"></div>
+          </div>
+        </div>
+        
+        <div id="analyticsTab" class="detail-tab-content p-6 hidden">
+          <div id="analyticsContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!--analytics content here -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+        <button class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" onclick="closeModal()">
+          Close
+        </button>
+        <a id="repoViewOnGitHub" href="#" target="_blank" class="px-4 py-2 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white transition-colors">
+          <i class="fab fa-github mr-2"></i> View on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Content Modal -->
+  <div id="fileModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="modal-content bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-95">
+      <div class="modal-header flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="modal-title text-xl font-bold flex items-center gap-2">
+          <i class="fas fa-file-code mr-2"></i>
+          <span id="modalFileTitle">File Content</span>
+        </h2>
+        <div class="flex items-center gap-2">
+          <button class="copy-btn p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="copyFileContent()" title="Copy to clipboard">
+            Copy
+          </button>
+          <button class="download-btn p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="downloadFile()" title="Download file">
+            Download
+          </button>
+          <button class="modal-close p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="closeFileModal()">
+            X
+          </button>
+        </div>
+      </div>
+      <div class="modal-body overflow-auto p-0" style="max-height: calc(90vh - 120px)">
+        <div class="file-content-container code-explorer">
+          <pre id="fileContent" class="hljs p-4 m-0"></pre>
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <div class="text-sm text-gray-500 dark:text-gray-400" id="fileInfo"></div>
+        <button class="px-4 py-2 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white transition-colors" onclick="closeFileModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Search Modal -->
+  <div id="advancedSearchModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="modal-content bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-95">
+      <div class="modal-header flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="modal-title text-xl font-bold flex items-center gap-2">
+          <i class="fas fa-sliders-h"></i> Advanced Search
+        </h2>
+        <button class="modal-close p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="closeAdvancedSearch()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body p-6">
+        <div class="mb-4">
+          <label class="block mb-2 font-medium">Search by:</label>
+          <select id="searchType" class="border-0 bg-gray-100 dark:bg-gray-700 p-3 rounded-lg w-full focus:ring-2 focus:ring-[var(--primary)] focus:outline-none transition-all duration-300">
+            <option value="username">Username</option>
+            <option value="repo">Repository URL</option>
+            <option value="org">Organization</option>
+            <option value="topic">Topic</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block mb-2 font-medium">Sort by:</label>
+          <select id="sortBy" class="border-0 bg-gray-100 dark:bg-gray-700 p-3 rounded-lg w-full focus:ring-2 focus:ring-[var(--primary)] focus:outline-none transition-all duration-300">
+            <option value="stars">Stars</option>
+            <option value="forks">Forks</option>
+            <option value="updated">Last Updated</option>
+            <option value="name">Name</option>
+            <option value="size">Size</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block mb-2 font-medium">Filter by language:</label>
+          <input id="languageFilter" type="text" placeholder="e.g. JavaScript, Python" 
+                 class="border-0 bg-gray-100 dark:bg-gray-700 p-3 rounded-lg w-full focus:ring-2 focus:ring-[var(--primary)] focus:outline-none transition-all duration-300">
+        </div>
+        <div class="mb-4">
+          <label class="block mb-2 font-medium">Created:</label>
+          <select id="createdFilter" class="border-0 bg-gray-100 dark:bg-gray-700 p-3 rounded-lg w-full focus:ring-2 focus:ring-[var(--primary)] focus:outline-none transition-all duration-300">
+            <option value="">Any time</option>
+            <option value=">2023-01-01">Last year</option>
+            <option value=">2022-01-01">Last 2 years</option>
+            <option value=">2020-01-01">Last 5 years</option>
+          </select>
+        </div>
+        <div class="flex items-center mb-4">
+          <input id="forkFilter" type="checkbox" class="mr-2 h-5 w-5 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)]">
+          <label for="forkFilter">Include forks</label>
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+        <button class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" onclick="closeAdvancedSearch()">
+          Cancel
+        </button>
+        <button onclick="applyAdvancedSearch()" class="px-4 py-2 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white transition-colors">
+          Search
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Search Modal -->
+  <div id="aiSearchModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="modal-content bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all duration-300 scale-95">
+      <div class="modal-header flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="modal-title text-xl font-bold flex items-center gap-2">
+          <i class="fas fa-robot text-[var(--accent)]"></i> AI-Powered Search
+        </h2>
+        <button class="modal-close p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="closeAISearch()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body p-6">
+        <div class="mb-4">
+          <label class="block mb-2 font-medium">Ask AI to find GitHub content:</label>
+          <textarea id="aiQuery" rows="3" placeholder="e.g. 'Find repositories about machine learning with Python that have more than 1000 stars'" 
+                    class="border-0 bg-gray-100 dark:bg-gray-700 p-3 rounded-lg w-full focus:ring-2 focus:ring-[var(--accent)] focus:outline-none transition-all duration-300"></textarea>
+        </div>
+        <div class="flex items-center mb-4">
+          <input id="aiUseProfile" type="checkbox" class="mr-2 h-5 w-5 rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent)]">
+          <label for="aiUseProfile">Include profile analysis</label>
+        </div>
+        <div class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Our AI will analyze your query and find the most relevant GitHub repositories and profiles.
+        </div>
+      </div>
+      <div class="modal-footer p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+        <button class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" onclick="closeAISearch()">
+          Cancel
+        </button>
+        <button onclick="executeAISearch()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--accent)] to-pink-500 hover:from-[var(--accent)]/90 hover:to-pink-500/90 text-white transition-colors flex items-center gap-2">
+          <i class="fas fa-bolt"></i>
+          <span>Search with AI</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-md text-center">
+      <div class="flex justify-center mb-4">
+        <div class="relative">
+          <div class="w-16 h-16 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <i class="fab fa-github text-2xl text-[var(--primary)]"></i>
+          </div>
+        </div>
+      </div>
+      <h3 class="text-xl font-bold mb-2" id="loadingTitle">Loading Data</h3>
+      <p class="text-gray-600 dark:text-gray-400 mb-4" id="loadingMessage">Fetching GitHub information...</p>
+      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+        <div id="loadingProgress" class="bg-[var(--primary)] h-2.5 rounded-full" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 z-50 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 flex items-center gap-3">
+    <div id="toastIcon" class="text-xl">
+      <i class="fas fa-info-circle"></i>
+    </div>
+    <div>
+      <div id="toastTitle" class="font-semibold">Notification</div>
+      <div id="toastMessage" class="text-sm">This is a notification message</div>
+    </div>
+    <button class="ml-4" onclick="hideToast()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+
+ <script src="assets/js/exploir_github.js"> </script>
+</body>
+</html>
+   

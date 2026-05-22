@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login • 3S Platform</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Your existing CSS -->
+  <link rel="stylesheet" href="assets/vendor/css/core.css" />
+  <link rel="stylesheet" href="assets/vendor/css/theme-default.css" />
+  <link rel="stylesheet" href="assets/vendor/css/pages/page-auth.css" />
+  <!-- Custom CSS -->
+  <style>
+    :root {
+      --primary-color: #4361ee;
+      --primary-hover: #3a56d4;
+      --secondary-color: #3f37c9;
+      --text-color: #2b2d42;
+      --light-gray: #f8f9fa;
+      --border-color: #e9ecef;
+      --success-color: #4bb543;
+      --error-color: #ff3333;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f7ff;
+      color: var(--text-color);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    .auth-container {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+    }
+    
+    .auth-left {
+      flex: 1;
+      background: linear-gradient(135deg, #000 0%, #4a474540 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .auth-left::before {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: rgb(184 167 169 / 45%);
+      top: -100px;
+      left: -100px;
+    }
+    
+    .auth-left::after {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background:  rgb(75 71 69 / 37%);
+      bottom: -50px;
+      right: -50px;
+    }
+    
+    .auth-left-content {
+      max-width: 500px;
+      z-index: 1;
+      text-align: center;
+    }
+    
+    .auth-left h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+    
+    .auth-left p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+    }
+    
+    .auth-right {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      background-color: white;
+    }
+    
+    .auth-card {
+      width: 100%;
+      max-width: 450px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      padding: 2.5rem;
+      border: 1px solid var(--border-color);
+    }
+    
+    .logo-container {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .logo {
+      width: 24rem;
+      height: auto;
+      margin-bottom: 1.5rem;
+    }
+    
+    .auth-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    
+    .auth-subtitle {
+      color: #6c757d;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-color);
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      transition: all 0.3s;
+      background-color: var(--light-gray);
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2);
+    }
+    
+    .password-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #6c757d;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: none;
+      width: 100%;
+    }
+    
+    .btn-primary {
+      background-color: #494644;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: #6b6866;
+      transform: translateY(-2px);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .message-area {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .message-success {
+      background-color: rgba(75, 181, 67, 0.1);
+      color: var(--success-color);
+      border: 1px solid rgba(75, 181, 67, 0.2);
+    }
+    
+    .message-error {
+      background-color: rgba(255, 51, 51, 0.1);
+      color: var(--error-color);
+      border: 1px solid rgba(255, 51, 51, 0.2);
+    }
+    
+    .footer-links {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+    
+    .footer-links a {
+      color: var(--primary-color);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+    
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 1.5rem 0;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .divider::before {
+      margin-right: 1rem;
+    }
+    
+    .divider::after {
+      margin-left: 1rem;
+    }
+    
+    @media (max-width: 992px) {
+      .auth-container {
+        flex-direction: column;
+      }
+      
+      .auth-left {
+        padding: 2rem 1rem;
+      }
+      
+      .auth-right {
+        padding: 2rem 1rem;
+      }
+    }
+    
+    /* Animation */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .auth-card {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <!-- Left side with branding -->
+    <div class="auth-left">
+      <div class="auth-left-content">
+        <!-- Company logo will go here -->
+        <div class="logo-container">
+          <img src="assets/img/icons/logo.png" alt="Company Logo" class="logo">
+        </div>
+        
+      </div>
+    </div>
+    
+    <!-- Right side with login form -->
+    <div class="auth-right">
+      <div class="auth-card">
+        <h2 class="auth-title">Sign In</h2>
+        <p class="auth-subtitle">Access your 3S Platform account</p>
+        
+        <form id="login-form">
+          <div id="message-area" class="mb-3"></div>
+          
+          <div class="form-group" id="email-field-container">
+            <label for="email" class="form-label">Email Address</label>
+            <input
+              type="email"
+              id="email"
+              class="form-control"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+          
+          <div class="form-group" id="password-field-container">
+            <label for="password" class="form-label">Password</label>
+            <div style="position: relative;">
+              <input
+                type="password"
+                id="password"
+                class="form-control"
+                placeholder="Enter your password"
+                required
+              />
+              <span class="password-toggle" id="toggle-password">
+                <i class="far fa-eye"></i>
+              </span>
+            </div>
+          </div>
+          
+          <!-- 2FA Code Input - Hidden by default -->
+          <div class="form-group" id="2fa-code-field-container" style="display: none;">
+            <label for="2fa-code" class="form-label">Verification Code</label>
+            <input
+              type="text"
+              id="2fa-code"
+              class="form-control"
+              placeholder="Enter 6-digit code from your email"
+            />
+            <small class="text-muted">Check your email for the verification code</small>
+          </div>
+          
+          <button type="submit" class="btn btn-primary" id="login-submit-btn">
+            Sign In
+          </button>
+          
+          
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="assets/vendor/js/helpers.js"></script>
+  <script type="module" src="assets/js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Dashboard - Global Overview</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4e73df;
+            --primary-light: rgba(78, 115, 223, 0.1);
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --gray-100: #f8f9fc;
+            --gray-200: #e3e9f7;
+            --gray-600: #858796;
+            --gray-800: #5a5c69;
+        }
+
+        body {
+            background-color: var(--gray-100);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .card {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
+        }
+
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+            padding: 1rem 1.35rem;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .stat-card {
+            border-left: 0.25rem solid;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card .stat-icon {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            opacity: 0.2;
+            font-size: 5rem;
+            z-index: 0;
+        }
+
+        .stat-card-primary {
+            border-left-color: var(--primary);
+        }
+
+        .stat-card-success {
+            border-left-color: var(--success);
+        }
+
+        .stat-card-info {
+            border-left-color: var(--info);
+        }
+
+        .stat-card-warning {
+            border-left-color: var(--warning);
+        }
+
+        .stat-card-danger {
+            border-left-color: var(--danger);
+        }
+
+        .stat-card .stat-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .mini-chart-container {
+            position: relative;
+            height: 120px;
+            width: 100%;
+        }
+
+        .health-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .health-green {
+            background-color: var(--success);
+        }
+
+        .health-yellow {
+            background-color: var(--warning);
+        }
+
+        .health-red {
+            background-color: var(--danger);
+        }
+
+        .build-status {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .build-status-success {
+            background-color: rgba(28, 200, 138, 0.1);
+            border-left: 4px solid var(--success);
+        }
+
+        .build-status-failure {
+            background-color: rgba(231, 74, 59, 0.1);
+            border-left: 4px solid var(--danger);
+        }
+
+        .build-status-building {
+            background-color: rgba(54, 185, 204, 0.1);
+            border-left: 4px solid var(--info);
+        }
+
+        .build-status-unstable {
+            background-color: rgba(246, 194, 62, 0.1);
+            border-left: 4px solid var(--warning);
+        }
+
+        .repo-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .repo-badge-hosted {
+            background-color: rgba(78, 115, 223, 0.1);
+            color: var(--primary);
+        }
+
+        .repo-badge-proxy {
+            background-color: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+        }
+
+        .repo-badge-private {
+            background-color: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+
+        .repo-badge-public {
+            background-color: rgba(25, 135, 84, 0.1);
+            color: #198754;
+        }
+
+        .coverage-meter {
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .coverage-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #e74a3b, #f6c23e, #1cc88a);
+        }
+
+        .tool-card {
+            transition: all 0.3s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+        }
+
+        .tool-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tool-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .status-healthy {
+            background-color: rgba(28, 200, 138, 0.2);
+            color: var(--success);
+        }
+
+        .status-warning {
+            background-color: rgba(246, 194, 62, 0.2);
+            color: var(--warning);
+        }
+
+        .status-critical {
+            background-color: rgba(231, 74, 59, 0.2);
+            color: var(--danger);
+        }
+
+        /* Dark Mode Styles */
+        [data-theme='dark'] body {
+            background-color: #1e293b;
+            color: #e2e8f0;
+        }
+        [data-theme='dark'] .card {
+            background-color: #2c3a4f;
+            border-color: #3e4c60;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(0,0,0, 0.2);
+        }
+        [data-theme='dark'] .card:hover {
+            box-shadow: 0 0.5rem 2rem 0 rgba(0,0,0, 0.3);
+        }
+        [data-theme='dark'] .card-header {
+            background-color: #374151;
+            border-bottom-color: #4b5563;
+            color: #f3f4f6;
+        }
+        [data-theme='dark'] .stat-card .stat-title {
+            color: #9ca3af;
+        }
+        [data-theme='dark'] .stat-card .stat-value {
+            color: #e5e7eb;
+        }
+        [data-theme='dark'] .text-gray-800 {
+            color: #e5e7eb !important;
+        }
+        [data-theme='dark'] .text-gray-600 {
+            color: #9ca3af !important;
+        }
+        [data-theme='dark'] .dashboard-header .btn-outline-primary {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        [data-theme='dark'] .dashboard-header .btn-outline-primary:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        [data-theme='dark'] .scroll-to-top {
+            background-color: var(--primary);
+        }
+        [data-theme='dark'] .devops-section .card-header {
+            background-color: rgba(78, 115, 223, 0.2);
+            color: #a5b4fc;
+        }
+        [data-theme='dark'] .devops-section .card-body {
+            color: #9ca3af;
+        }
+        [data-theme='dark'] .coverage-meter {
+            background-color: #374151;
+        }
+        [data-theme='dark'] .build-status {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-0">
+        <!-- Main Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
+                <!-- Begin Page Content -->
+                <div class="container-fluid main-content pt-4">
+                    <!-- Page Header -->
+                    <div class="dashboard-header">
+                        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                            <h1 class="h3 mb-0 text-gray-800">DevOps Overview</h1>
+                            <div>
+                                <span class="me-3">Last updated: <span id="lastUpdated">Just now</span></span>
+                                <button class="btn btn-sm btn-outline-primary" id="refreshBtn">
+                                    <i class="bx bx-refresh"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Cards Row -->
+                    <div class="row">
+                        <!-- Jenkins Summary -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card stat-card-primary h-100 tool-card">
+                                <div class="card-body">
+                                    <div class="stat-title">Jenkins</div>
+                                    <div class="stat-value" id="jenkinsJobsTotal">0</div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="health-indicator health-green me-2"></span>
+                                        <small id="jenkinsHealthStatus">Loading...</small>
+                                    </div>
+                                    <div class="mini-chart-container">
+                                        <canvas id="jenkinsMiniChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SonarQube Summary -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card stat-card-success h-100 tool-card">
+                                <div class="card-body">
+                                    <div class="stat-title">SonarQube</div>
+                                    <div class="stat-value" id="sonarqubeProjectsTotal">0</div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="health-indicator health-green me-2"></span>
+                                        <small id="sonarqubeHealthStatus">Loading...</small>
+                                    </div>
+                                    <div class="mini-chart-container">
+                                        <canvas id="sonarqubeMiniChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nexus Summary -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card stat-card-info h-100 tool-card">
+                                <div class="card-body">
+                                    <div class="stat-title">Nexus</div>
+                                    <div class="stat-value" id="nexusReposTotal">0</div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="health-indicator health-green me-2"></span>
+                                        <small id="nexusHealthStatus">Loading...</small>
+                                    </div>
+                                    <div class="mini-chart-container">
+                                        <canvas id="nexusMiniChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DockerHub Summary -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card stat-card-warning h-100 tool-card">
+                                <div class="card-body">
+                                    <div class="stat-title">DockerHub</div>
+                                    <div class="stat-value" id="dockerhubReposTotal">0</div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="health-indicator health-green me-2"></span>
+                                        <small id="dockerhubHealthStatus">Loading...</small>
+                                    </div>
+                                    <div class="mini-chart-container">
+                                        <canvas id="dockerhubMiniChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DevOps Tools Overview Row -->
+                    <div class="row devops-tools-row">
+                        <!-- Jenkins Section -->
+                        <div class="col-xl-6 col-lg-12 mb-4 devops-section">
+                            <div class="card shadow h-100 tool-card">
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">Jenkins Overview</h6>
+                                    <span class="tool-status status-healthy" id="jenkinsStatusBadge">Healthy</span>
+                                </div>
+                                <div class="card-body" id="jenkinsOverviewBody">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="chart-container">
+                                                <canvas id="jenkinsJobStatusChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="chart-container">
+                                                <canvas id="jenkinsExecutorChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SonarQube Section -->
+                        <div class="col-xl-6 col-lg-12 mb-4 devops-section">
+                            <div class="card shadow h-100 tool-card">
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">SonarQube Overview</h6>
+                                    <span class="tool-status status-healthy" id="sonarqubeStatusBadge">Healthy</span>
+                                </div>
+                                <div class="card-body" id="sonarqubeOverviewBody">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="chart-container">
+                                                <canvas id="sonarqubeQualityGateChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="chart-container">
+                                                <canvas id="sonarqubeCoverageChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row devops-tools-row">
+                        <!-- Nexus Section -->
+                        <div class="col-xl-6 col-lg-12 mb-4 devops-section">
+                            <div class="card shadow h-100 tool-card">
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">Nexus Overview</h6>
+                                    <span class="tool-status status-healthy" id="nexusStatusBadge">Healthy</span>
+                                </div>
+                                <div class="card-body" id="nexusOverviewBody">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="chart-container">
+                                                <canvas id="nexusRepoTypeChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="chart-container">
+                                                <canvas id="nexusStorageChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DockerHub Section -->
+                        <div class="col-xl-6 col-lg-12 mb-4 devops-section">
+                            <div class="card shadow h-100 tool-card">
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">DockerHub Overview</h6>
+                                    <span class="tool-status status-healthy" id="dockerhubStatusBadge">Healthy</span>
+                                </div>
+                                <div class="card-body" id="dockerhubOverviewBody">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="chart-container">
+                                                <canvas id="dockerhubRepoTypeChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="chart-container">
+                                                <canvas id="dockerhubPullStatsChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+            </div>
+            <!-- End of Main Content -->
+        </div>
+        <!-- End of Content Wrapper -->
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="bx bx-up-arrow-alt"></i>
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="config.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            console.log('Enhanced DevOps Dashboard Loaded');
+            
+            // Initialize charts object to store all chart instances
+            const charts = {};
+            
+            // Chart color constants
+            let COLOR_SUCCESS, COLOR_DANGER, COLOR_WARNING, COLOR_INFO, COLOR_PRIMARY, COLOR_SECONDARY;
+            function setColorConstants() {
+                COLOR_SUCCESS = getCssVar('--success') || '#1cc88a';
+                COLOR_DANGER = getCssVar('--danger') || '#e74a3b';
+                COLOR_WARNING = getCssVar('--warning') || '#f6c23e';
+                COLOR_INFO = getCssVar('--info') || '#36b9cc';
+                COLOR_PRIMARY = getCssVar('--primary') || '#4e73df';
+                COLOR_SECONDARY = '#6c757d'; // fallback for secondary
+            }
+            setColorConstants();
+
+            // Helper function to apply theme and update UI elements
+            function applyTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                updateChartsTheme(theme); // This will also call setColorConstants
+                // Optionally, save to localStorage so iframe remembers theme if reloaded independently
+                localStorage.setItem('theme', theme);
+            }
+
+            // Theme synchronization
+            function syncTheme() {
+                // Initial theme determination: localStorage (if set by parent or self) or system preference.
+                // This will be overridden by messages from parent if in an iframe.
+                const initialTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                applyTheme(initialTheme);
+            }
+            
+            // Update all charts theme
+            function updateChartsTheme(theme) {
+                setColorConstants(); // Always update color constants on theme change
+                // Update all charts with new theme colors
+
+                const isDark = theme === 'dark';
+                const textColor = isDark ? '#e5e7eb' : '#5a5c69';
+                const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                
+                Object.values(charts).forEach(chart => {
+                    if (chart) {
+                        chart.options.scales.x.grid.color = gridColor;
+                        chart.options.scales.y.grid.color = gridColor;
+                        chart.options.scales.x.ticks.color = textColor;
+                        chart.options.scales.y.ticks.color = textColor;
+                        chart.options.plugins.legend.labels.color = textColor;
+                        chart.update();
+                    }
+                });
+            }
+            
+            // Apply initial theme settings on load
+            syncTheme();
+
+            // Listen for theme changes from parent (when embedded as iframe)
+            window.addEventListener('message', function(event) {
+                console.log('Received message in iframe:', event.data);
+                if (event.data && event.data.type === 'themeChange' && typeof event.data.theme === 'string') {
+                    console.log('Applying theme from parent:', event.data.theme);
+                    applyTheme(event.data.theme);
+                }
+            });
+
+            // Function to request theme from parent with retry
+            function requestThemeFromParent(attempt = 0) {
+                if (window.parent && window.parent.postMessage) {
+                    console.log('Requesting theme from parent (attempt ' + (attempt + 1) + ')');
+                    window.parent.postMessage({ type: 'requestInitialTheme' }, '*');
+                    
+                    // Set up a retry mechanism in case parent doesn't respond
+                    if (attempt < 3) { // Try up to 3 times
+                        setTimeout(() => {
+                            // Only retry if we haven't received a theme yet
+                            if (!document.documentElement.hasAttribute('data-theme')) {
+                                requestThemeFromParent(attempt + 1);
+                            }
+                        }, 500 * (attempt + 1)); // Exponential backoff: 500ms, 1000ms, 1500ms
+                    }
+                } else {
+                    console.log('Parent window not accessible for theme sync');
+                }
+            }
+
+            // Listen for system theme changes ONLY if not in an iframe
+            if (window.self === window.top) {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                    const newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    console.log('System theme changed to:', newTheme);
+                    applyTheme(newTheme);
+                });
+            } else {
+                // If in an iframe, request theme from parent on load to ensure sync
+                console.log('Running in iframe, requesting theme from parent...');
+                requestThemeFromParent();
+                
+                // Also set up a listener for when the parent might become available
+                window.addEventListener('load', () => {
+                    setTimeout(() => {
+                        if (!document.documentElement.hasAttribute('data-theme')) {
+                            console.log('Parent theme not received yet, retrying...');
+                            requestThemeFromParent();
+                        }
+                    }, 1000);
+                });
+            }
+            
+            // Fallback: If no theme is set after 3 seconds, use system preference
+            setTimeout(() => {
+                if (!document.documentElement.hasAttribute('data-theme')) {
+                    const fallbackTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    console.warn('No theme received from parent, falling back to system preference:', fallbackTheme);
+                    applyTheme(fallbackTheme);
+                }
+            }, 3000);
+
+            // Global error handler for charts
+            // ...
+
+            // Refresh button functionality
+            document.getElementById('refreshBtn').addEventListener('click', async function() {
+                this.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Refreshing...';
+                await refreshAllData();
+                this.innerHTML = '<i class="bx bx-refresh"></i> Refresh';
+                updateLastUpdated();
+            });
+
+            function updateLastUpdated() {
+                const now = new Date();
+                document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
+            }
+
+            // Helper for authenticated fetch requests
+            async function authFetch(url, opts = {}) {
+                const token = localStorage.getItem('accessToken');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...opts.headers
+                };
+                try {
+                    const response = await fetch(url, { ...opts, headers });
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({ message: response.statusText }));
+                        console.error(`API Error ${response.status} for ${url}:`, errData.message);
+                        throw new Error(errData.message || `HTTP error ${response.status}`);
+                    }
+                    return response.json();
+                } catch (error) {
+                    console.error(`Fetch error for ${url}:`, error);
+                    throw error;
+                }
+            }
+
+            // Helper function to format bytes
+            function formatBytes(bytes, decimals = 2) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            }
+
+            // Helper to get CSS variable value in JS
+            function getCssVar(name) {
+                return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            }
+
+            // Helper function to create a mini chart
+            function createMiniChart(canvasId, data, colors) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        },
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                charts[canvasId] = chart;
+                return chart;
+            }
+
+            // Helper function to create a bar chart
+            function createBarChart(canvasId, labels, datasets, options = {}) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const defaultOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#e5e7eb' : '#5a5c69'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#e5e7eb' : '#5a5c69'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#e5e7eb' : '#5a5c69'
+                            }
+                        }
+                    },
+                    ...options
+                };
+                
+                const chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: datasets
+                    },
+                    options: defaultOptions
+                });
+                charts[canvasId] = chart;
+                return chart;
+            }
+
+            // Helper function to create a pie chart
+            function createPieChart(canvasId, labels, data, colors, options = {}) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const defaultOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#e5e7eb' : '#5a5c69'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    ...options
+                };
+                
+                const chart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 1,
+                            borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#fff'
+                        }]
+                    },
+                    options: defaultOptions
+                });
+                charts[canvasId] = chart;
+                return chart;
+            }
+
+            // Helper function to create a line chart
+            function createLineChart(canvasId, labels, datasets, options = {}) {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const defaultOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#e5e7eb' : '#5a5c69'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#e5e7eb' : '#5a5c69'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#e5e7eb' : '#5a5c69'
+                            }
+                        }
+                    },
+                    ...options
+                };
+                
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: datasets
+                    },
+                    options: defaultOptions
+                });
+                charts[canvasId] = chart;
+                return chart;
+            }
+
+            // API endpoints
+            const JENKINS_API_BASE = `${window.ENV.BACKEND_URL}/api/jenkins`;
+            const SONARQUBE_API_BASE = `${window.ENV.BACKEND_URL}/api/sonarqube`;
+            const NEXUS_API_BASE = `${window.ENV.BACKEND_URL}/api/nexus`;
+            const DOCKERHUB_API_BASE = `${window.ENV.BACKEND_URL}/api/dockerhub`;
+
+            // Global data storage
+            const dashboardData = {
+                jenkins: null,
+                sonarqube: null,
+                nexus: null,
+                dockerhub: null
+            };
+
+            // Refresh all data
+            async function refreshAllData() {
+                await Promise.all([
+                    fetchJenkinsData(),
+                    fetchSonarQubeData(),
+                    fetchNexusData(),
+                    fetchDockerHubData()
+                ]);
+            }
+
+            // Jenkins data functions
+            async function fetchJenkinsData() {
+                const jenkinsOverviewBody = document.getElementById('jenkinsOverviewBody');
+                if (!jenkinsOverviewBody) return;
+
+                try {
+                    // 1. Fetch Job Statistics
+                    const jobsList = await authFetch(`${JENKINS_API_BASE}/jobs`);
+                    let totalJobs = 0;
+                    let successfulJobs = 0;
+                    let failedJobs = 0;
+                    let unstableJobs = 0;
+                    let buildingJobs = 0;
+                    let recentBuilds = [];
+
+                    if (Array.isArray(jobsList)) {
+                        totalJobs = jobsList.length;
+                        const jobDetailsPromises = jobsList.map(async (job) => {
+                            try {
+                                const jobInfo = await authFetch(`${JENKINS_API_BASE}/job/${encodeURIComponent(job.name)}`);
+                                if (jobInfo && jobInfo.lastBuild && jobInfo.lastBuild.number) {
+                                    const lastBuildInfo = await authFetch(`${JENKINS_API_BASE}/job/${encodeURIComponent(job.name)}/build/${jobInfo.lastBuild.number}`);
+                                    if (lastBuildInfo) {
+                                        if (lastBuildInfo.building) {
+                                            buildingJobs++;
+                                        }
+                                        switch (lastBuildInfo.result) {
+                                            case 'SUCCESS': successfulJobs++; break;
+                                            case 'FAILURE': failedJobs++; break;
+                                            case 'UNSTABLE': unstableJobs++; break;
+                                        }
+                                        
+                                        // Add to recent builds if within last 7 days
+                                        const buildDate = new Date(lastBuildInfo.timestamp);
+                                        const sevenDaysAgo = new Date();
+                                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                        
+                                        if (buildDate > sevenDaysAgo) {
+                                            recentBuilds.push({
+                                                jobName: job.name,
+                                                buildNumber: jobInfo.lastBuild.number,
+                                                result: lastBuildInfo.result,
+                                                timestamp: lastBuildInfo.timestamp,
+                                                duration: lastBuildInfo.duration,
+                                                building: lastBuildInfo.building
+                                            });
+                                        }
+                                    }
+                                }
+                            } catch (jobError) {
+                                console.warn(`Could not fetch details for Jenkins job ${job.name}:`, jobError.message);
+                            }
+                        });
+                        await Promise.all(jobDetailsPromises);
+                    } else if (jobsList && Array.isArray(jobsList.jobs)) {
+                        totalJobs = jobsList.jobs.length;
+                        const jobDetailsPromises = jobsList.jobs.map(async (job) => {
+                            try {
+                                const jobInfo = await authFetch(`${JENKINS_API_BASE}/job/${encodeURIComponent(job.name)}`);
+                                if (jobInfo && jobInfo.lastBuild && jobInfo.lastBuild.number) {
+                                    const lastBuildInfo = await authFetch(`${JENKINS_API_BASE}/job/${encodeURIComponent(job.name)}/build/${jobInfo.lastBuild.number}`);
+                                    if (lastBuildInfo) {
+                                        if (lastBuildInfo.building) {
+                                            buildingJobs++;
+                                        }
+                                        switch (lastBuildInfo.result) {
+                                            case 'SUCCESS': successfulJobs++; break;
+                                            case 'FAILURE': failedJobs++; break;
+                                            case 'UNSTABLE': unstableJobs++; break;
+                                        }
+                                        
+                                        // Add to recent builds if within last 7 days
+                                        const buildDate = new Date(lastBuildInfo.timestamp);
+                                        const sevenDaysAgo = new Date();
+                                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                        
+                                        if (buildDate > sevenDaysAgo) {
+                                            recentBuilds.push({
+                                                jobName: job.name,
+                                                buildNumber: jobInfo.lastBuild.number,
+                                                result: lastBuildInfo.result,
+                                                timestamp: lastBuildInfo.timestamp,
+                                                duration: lastBuildInfo.duration,
+                                                building: lastBuildInfo.building
+                                            });
+                                        }
+                                    }
+                                }
+                            } catch (jobError) {
+                                console.warn(`Could not fetch details for Jenkins job ${job.name}:`, jobError.message);
+                            }
+                        });
+                        await Promise.all(jobDetailsPromises);
+                    } else {
+                        console.warn('Jenkins jobs data is not in expected array format:', jobsList);
+                    }
+
+                    // 2. Fetch Executor Status
+                    let busyExecutors = 0;
+                    let idleExecutors = 0;
+                    let totalExecutors = 0;
+                    try {
+                        const computerData = await authFetch(`${JENKINS_API_BASE}/computer`); 
+                        if (computerData) {
+                            if (typeof computerData.busyExecutors === 'number' && typeof computerData.totalExecutors === 'number') {
+                                busyExecutors = computerData.busyExecutors;
+                                totalExecutors = computerData.totalExecutors;
+                                idleExecutors = totalExecutors - busyExecutors;
+                            } else if (Array.isArray(computerData.computer)) {
+                                computerData.computer.forEach(node => {
+                                    if (node.executors) {
+                                        node.executors.forEach(executor => {
+                                            totalExecutors++;
+                                            if (!executor.idle) busyExecutors++;
+                                        });
+                                    }
+                                    if (node.oneOffExecutors) {
+                                         node.oneOffExecutors.forEach(executor => {
+                                            totalExecutors++;
+                                            if (!executor.idle) busyExecutors++;
+                                        });
+                                    }
+                                });
+                                idleExecutors = totalExecutors - busyExecutors;
+                            } else {
+                                console.warn('Jenkins computer data format not recognized for executor count:', computerData);
+                            }
+                        }
+                    } catch (execError) {
+                        console.warn('Could not fetch Jenkins executor data:', execError.message);
+                    }
+
+                    // Store data for later use
+                    dashboardData.jenkins = {
+                        totalJobs,
+                        successfulJobs,
+                        failedJobs,
+                        unstableJobs,
+                        buildingJobs,
+                        busyExecutors,
+                        idleExecutors,
+                        totalExecutors,
+                        recentBuilds: recentBuilds.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5)
+                    };
+
+                    // Update summary card
+                    document.getElementById('jenkinsJobsTotal').textContent = totalJobs;
+                    
+                    // Update health status
+                    const healthStatus = document.getElementById('jenkinsHealthStatus');
+                    const statusBadge = document.getElementById('jenkinsStatusBadge');
+                    if (failedJobs > 0 || unstableJobs > 0) {
+                        healthStatus.textContent = `${failedJobs} failed, ${unstableJobs} unstable`;
+                        healthStatus.previousElementSibling.className = failedJobs > 0 ? 'health-indicator health-red me-2' : 'health-indicator health-yellow me-2';
+                        statusBadge.className = failedJobs > 0 ? 'tool-status status-critical' : 'tool-status status-warning';
+                        statusBadge.textContent = failedJobs > 0 ? 'Critical' : 'Warning';
+                    } else {
+                        healthStatus.textContent = 'All jobs healthy';
+                        healthStatus.previousElementSibling.className = 'health-indicator health-green me-2';
+                        statusBadge.className = 'tool-status status-healthy';
+                        statusBadge.textContent = 'Healthy';
+                    }
+
+                    // Create mini chart for summary card
+                    if (charts.jenkinsMiniChart) charts.jenkinsMiniChart.destroy();
+                    createMiniChart('jenkinsMiniChart', 
+                        [successfulJobs, failedJobs, unstableJobs, buildingJobs], 
+                        [COLOR_SUCCESS, COLOR_DANGER, COLOR_WARNING, COLOR_INFO]);
+
+                    // Create job status chart
+                    if (charts.jenkinsJobStatusChart) charts.jenkinsJobStatusChart.destroy();
+                    createBarChart('jenkinsJobStatusChart', 
+                        ['Job Status'], 
+                        [
+                            {
+                                label: 'Successful',
+                                data: [successfulJobs],
+                                backgroundColor: COLOR_SUCCESS,
+                                borderColor: COLOR_SUCCESS,
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Failed',
+                                data: [failedJobs],
+                                backgroundColor: COLOR_DANGER,
+                                borderColor: COLOR_DANGER,
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Unstable',
+                                data: [unstableJobs],
+                                backgroundColor: COLOR_WARNING,
+                                borderColor: COLOR_WARNING,
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Building',
+                                data: [buildingJobs],
+                                backgroundColor: COLOR_INFO,
+                                borderColor: COLOR_INFO,
+                                borderWidth: 1
+                            }
+                        ],
+                        {
+                            indexAxis: 'y',
+                            scales: {
+                                x: { stacked: true },
+                                y: { stacked: true }
+                            }
+                        });
+
+                    // Create executor chart
+                    if (charts.jenkinsExecutorChart) charts.jenkinsExecutorChart.destroy();
+                    createPieChart('jenkinsExecutorChart', 
+                        ['Busy Executors', 'Idle Executors'], 
+                        [busyExecutors, idleExecutors], 
+                        [COLOR_DANGER, COLOR_SUCCESS]);
+
+                    // Render recent builds
+                    const recentBuildsContainer = document.createElement('div');
+                    if (dashboardData.jenkins.recentBuilds.length > 0) {
+                        dashboardData.jenkins.recentBuilds.forEach(build => {
+                            const buildElement = document.createElement('div');
+                            let statusClass = '';
+                            let statusIcon = '';
+                            let statusText = '';
+                            
+                            if (build.building) {
+                                statusClass = 'build-status-building';
+                                statusIcon = '<i class="bx bx-loader-alt bx-spin"></i>';
+                                statusText = 'Building';
+                            } else {
+                                switch (build.result) {
+                                    case 'SUCCESS':
+                                        statusClass = 'build-status-success';
+                                        statusIcon = '<i class="bx bx-check-circle"></i>';
+                                        statusText = 'Success';
+                                        break;
+                                    case 'FAILURE':
+                                        statusClass = 'build-status-failure';
+                                        statusIcon = '<i class="bx bx-x-circle"></i>';
+                                        statusText = 'Failed';
+                                        break;
+                                    case 'UNSTABLE':
+                                        statusClass = 'build-status-unstable';
+                                        statusIcon = '<i class="bx bx-error-circle"></i>';
+                                        statusText = 'Unstable';
+                                        break;
+                                    default:
+                                        statusClass = 'build-status-unstable';
+                                        statusIcon = '<i class="bx bx-question-mark"></i>';
+                                        statusText = 'Unknown';
+                                }
+                            }
+                            
+                            const buildDate = new Date(build.timestamp).toLocaleString();
+                            const durationMinutes = Math.floor(build.duration / 60000);
+                            
+                            buildElement.className = `build-status ${statusClass}`;
+                            buildElement.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>${build.jobName} #${build.buildNumber}</strong>
+                                        <div class="small">${statusIcon} ${statusText} • ${buildDate} • ${durationMinutes} min</div>
+                                    </div>
+                                    <a href="#" class="btn btn-sm btn-outline-primary">Details</a>
+                                </div>
+                            `;
+                            recentBuildsContainer.appendChild(buildElement);
+                        });
+                    } else {
+                        recentBuildsContainer.innerHTML = '<p class="text-muted">No recent builds found</p>';
+                    }
+                    
+                    // Skip updating the DOM for the removed table
+
+                } catch (error) {
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'alert alert-danger';
+                    errorElement.innerHTML = `<i class='bx bx-error-circle'></i> Failed to load Jenkins data: ${error.message}. Check console for details.`;
+                    const jenkinsOverviewBody = document.getElementById('jenkinsOverviewBody');
+                    jenkinsOverviewBody.innerHTML = '';
+                    jenkinsOverviewBody.appendChild(errorElement);
+                    console.error('Error fetching Jenkins dashboard data:', error);
+                    
+                    // Update status to show error
+                    document.getElementById('jenkinsHealthStatus').textContent = 'Connection error';
+                    document.getElementById('jenkinsHealthStatus').previousElementSibling.className = 'health-indicator health-red me-2';
+                    document.getElementById('jenkinsStatusBadge').className = 'tool-status status-critical';
+                    document.getElementById('jenkinsStatusBadge').textContent = 'Error';
+                }
+            }
+
+            // SonarQube data functions
+            async function fetchSonarQubeData() {
+                const sonarqubeOverviewBody = document.getElementById('sonarqubeOverviewBody');
+                if (!sonarqubeOverviewBody) return;
+
+                try {
+                    const projectsResponse = await authFetch(`${SONARQUBE_API_BASE}/projects/search`);
+                    const projects = projectsResponse.components || [];
+                    
+                    let totalProjects = projects.length;
+                    let passedQualityGates = 0;
+                    let failedQualityGates = 0;
+                    let totalCoverage = 0;
+                    let projectsWithCoverage = 0;
+                    let projectQualityData = [];
+
+                    if (totalProjects > 0) {
+                        const measurePromises = projects.map(async (project) => {
+                            try {
+                                const measuresResponse = await authFetch(`${SONARQUBE_API_BASE}/measures/component?component=${project.key}&metricKeys=alert_status,coverage,bugs,vulnerabilities,code_smells`);
+                                if (measuresResponse.component && measuresResponse.component.measures) {
+                                    const alertStatusMeasure = measuresResponse.component.measures.find(m => m.metric === 'alert_status');
+                                    const coverageMeasure = measuresResponse.component.measures.find(m => m.metric === 'coverage');
+                                    const bugsMeasure = measuresResponse.component.measures.find(m => m.metric === 'bugs');
+                                    const vulnerabilitiesMeasure = measuresResponse.component.measures.find(m => m.metric === 'vulnerabilities');
+                                    const codeSmellsMeasure = measuresResponse.component.measures.find(m => m.metric === 'code_smells');
+
+                                    if (alertStatusMeasure) {
+                                        if (alertStatusMeasure.value === 'OK') passedQualityGates++;
+                                        else if (alertStatusMeasure.value === 'ERROR') failedQualityGates++;
+                                    }
+                                    if (coverageMeasure && coverageMeasure.value !== undefined) {
+                                        totalCoverage += parseFloat(coverageMeasure.value);
+                                        projectsWithCoverage++;
+                                    }
+                                    
+                                    // Collect project quality data
+                                    projectQualityData.push({
+                                        name: project.name,
+                                        qualityGate: alertStatusMeasure ? alertStatusMeasure.value : 'UNKNOWN',
+                                        coverage: coverageMeasure ? parseFloat(coverageMeasure.value) : 0,
+                                        bugs: bugsMeasure ? parseInt(bugsMeasure.value) : 0,
+                                        vulnerabilities: vulnerabilitiesMeasure ? parseInt(vulnerabilitiesMeasure.value) : 0,
+                                        codeSmells: codeSmellsMeasure ? parseInt(codeSmellsMeasure.value) : 0
+                                    });
+                                }
+                            } catch (measureError) {
+                                console.warn(`Could not fetch measures for SonarQube project ${project.key}:`, measureError.message);
+                            }
+                        });
+                        await Promise.all(measurePromises);
+                    }
+
+                    const averageCoverage = projectsWithCoverage > 0 ? (totalCoverage / projectsWithCoverage) : 0;
+
+                    // Store data for later use
+                    dashboardData.sonarqube = {
+                        totalProjects,
+                        passedQualityGates,
+                        failedQualityGates,
+                        averageCoverage,
+                        projectQualityData: projectQualityData.sort((a, b) => b.bugs - a.bugs).slice(0, 5)
+                    };
+
+                    // Update summary card
+                    document.getElementById('sonarqubeProjectsTotal').textContent = totalProjects;
+                    
+                    // Update health status
+                    const healthStatus = document.getElementById('sonarqubeHealthStatus');
+                    const statusBadge = document.getElementById('sonarqubeStatusBadge');
+                    if (failedQualityGates > 0) {
+                        healthStatus.textContent = `${failedQualityGates} projects failed quality gate`;
+                        healthStatus.previousElementSibling.className = 'health-indicator health-red me-2';
+                        statusBadge.className = 'tool-status status-critical';
+                        statusBadge.textContent = 'Critical';
+                    } else {
+                        healthStatus.textContent = 'All projects passed quality gate';
+                        healthStatus.previousElementSibling.className = 'health-indicator health-green me-2';
+                        statusBadge.className = 'tool-status status-healthy';
+                        statusBadge.textContent = 'Healthy';
+                    }
+
+                    // Create mini chart for summary card
+                    if (charts.sonarqubeMiniChart) charts.sonarqubeMiniChart.destroy();
+                    createMiniChart('sonarqubeMiniChart', 
+                        [passedQualityGates, failedQualityGates], 
+                        [COLOR_SUCCESS, COLOR_DANGER]);
+
+                    // Create quality gate chart
+                    if (charts.sonarqubeQualityGateChart) charts.sonarqubeQualityGateChart.destroy();
+                    createPieChart('sonarqubeQualityGateChart', 
+                        ['Passed Quality Gate', 'Failed Quality Gate'], 
+                        [passedQualityGates, failedQualityGates], 
+                        [COLOR_SUCCESS, COLOR_DANGER]);
+
+                    // Create coverage chart
+                    if (charts.sonarqubeCoverageChart) charts.sonarqubeCoverageChart.destroy();
+                    createBarChart('sonarqubeCoverageChart', 
+                        ['Code Coverage'], 
+                        [{
+                            label: 'Average Coverage',
+                            data: [averageCoverage],
+                            backgroundColor: COLOR_INFO,
+                            borderColor: COLOR_INFO,
+                            borderWidth: 1
+                        }],
+                        {
+                            scales: {
+                                y: {
+                                    min: 0,
+                                    max: 100
+                                }
+                            }
+                        });
+
+                    // Render project quality overview
+                    const projectQualityContainer = document.createElement('div');
+                    if (dashboardData.sonarqube.projectQualityData.length > 0) {
+                        const table = document.createElement('table');
+                        table.className = 'table table-sm';
+                        
+                        const thead = document.createElement('thead');
+                        thead.innerHTML = `
+                            <tr>
+                                <th>Project</th>
+                                <th>Quality Gate</th>
+                                <th>Coverage</th>
+                                <th>Bugs</th>
+                                <th>Vulnerabilities</th>
+                            </tr>
+                        `;
+                        table.appendChild(thead);
+                        
+                        const tbody = document.createElement('tbody');
+                        dashboardData.sonarqube.projectQualityData.forEach(project => {
+                            const row = document.createElement('tr');
+                            
+                            let qualityGateBadge = '';
+                            if (project.qualityGate === 'OK') {
+                                qualityGateBadge = '<span class="badge bg-success">Passed</span>';
+                            } else if (project.qualityGate === 'ERROR') {
+                                qualityGateBadge = '<span class="badge bg-danger">Failed</span>';
+                            } else {
+                                qualityGateBadge = '<span class="badge bg-secondary">Unknown</span>';
+                            }
+                            
+                            const coverageBar = `
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">${project.coverage.toFixed(1)}%</span>
+                                    <div class="coverage-meter" style="flex-grow: 1;">
+                                        <div class="coverage-progress" style="width: ${project.coverage}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            row.innerHTML = `
+                                <td>${project.name}</td>
+                                <td>${qualityGateBadge}</td>
+                                <td>${coverageBar}</td>
+                                <td>${project.bugs}</td>
+                                <td>${project.vulnerabilities}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        
+                        table.appendChild(tbody);
+                        projectQualityContainer.appendChild(table);
+                    } else {
+                        projectQualityContainer.innerHTML = '<p class="text-muted">No project quality data available</p>';
+                    }
+                    
+                    // Skip updating the DOM for the removed table
+
+                } catch (error) {
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'alert alert-danger';
+                    errorElement.innerHTML = `<i class='bx bx-error-circle'></i> Failed to load SonarQube data: ${error.message}. Check console for details.`;
+                    const sonarqubeOverviewBody = document.getElementById('sonarqubeOverviewBody');
+                    sonarqubeOverviewBody.innerHTML = '';
+                    sonarqubeOverviewBody.appendChild(errorElement);
+                    console.error('Error fetching SonarQube dashboard data:', error);
+                    
+                    // Update status to show error
+                    document.getElementById('sonarqubeHealthStatus').textContent = 'Connection error';
+                    document.getElementById('sonarqubeHealthStatus').previousElementSibling.className = 'health-indicator health-red me-2';
+                    document.getElementById('sonarqubeStatusBadge').className = 'tool-status status-critical';
+                    document.getElementById('sonarqubeStatusBadge').textContent = 'Error';
+                }
+            }
+
+            // Nexus data functions
+            async function fetchNexusData() {
+                const nexusOverviewBody = document.getElementById('nexusOverviewBody');
+                if (!nexusOverviewBody) return;
+
+                try {
+                    const repositories = await authFetch(`${NEXUS_API_BASE}/repositories`);
+                    
+                    let totalRepos = 0;
+                    let hostedRepos = 0;
+                    let proxyRepos = 0;
+                    let totalStorageBytes = 0;
+                    let largestRepos = [];
+
+                    if (Array.isArray(repositories)) {
+                        totalRepos = repositories.length;
+                        repositories.forEach(repo => {
+                            if (repo.type === 'hosted') hostedRepos++;
+                            else if (repo.type === 'proxy') proxyRepos++;
+                            
+                            // Try to get size from repo.storage.totalSize (Nexus 3 specific) or fallback to repo.size
+                            const repoSize = (repo.storage && typeof repo.storage.totalSize === 'number') ? 
+                                repo.storage.totalSize : 
+                                (typeof repo.size === 'number' ? repo.size : 0);
+                                
+                            totalStorageBytes += repoSize;
+                            
+                            // Track largest repos
+                            largestRepos.push({
+                                name: repo.name,
+                                type: repo.type,
+                                format: repo.format || 'unknown',
+                                size: repoSize
+                            });
+                        });
+                        
+                        // Sort by size descending and take top 5
+                        largestRepos = largestRepos.sort((a, b) => b.size - a.size).slice(0, 5);
+                    } else {
+                        console.warn('Nexus repositories data is not in expected array format:', repositories);
+                    }
+
+                    const storageUsedFormatted = formatBytes(totalStorageBytes);
+
+                    // Store data for later use
+                    dashboardData.nexus = {
+                        totalRepos,
+                        hostedRepos,
+                        proxyRepos,
+                        totalStorageBytes,
+                        largestRepos
+                    };
+
+                    // Update summary card
+                    document.getElementById('nexusReposTotal').textContent = totalRepos;
+                    
+                    // Update health status
+                    const healthStatus = document.getElementById('nexusHealthStatus');
+                    const statusBadge = document.getElementById('nexusStatusBadge');
+                    healthStatus.textContent = `${storageUsedFormatted} used`;
+                    healthStatus.previousElementSibling.className = 'health-indicator health-green me-2';
+                    statusBadge.className = 'tool-status status-healthy';
+                    statusBadge.textContent = 'Healthy';
+
+                    // Create mini chart for summary card
+                    if (charts.nexusMiniChart) charts.nexusMiniChart.destroy();
+                    createMiniChart('nexusMiniChart', 
+                        [hostedRepos, proxyRepos], 
+                        [COLOR_PRIMARY, COLOR_SECONDARY]);
+
+                    // Create repo type chart
+                    if (charts.nexusRepoTypeChart) charts.nexusRepoTypeChart.destroy();
+                    createPieChart('nexusRepoTypeChart', 
+                        ['Hosted Repositories', 'Proxy Repositories'], 
+                        [hostedRepos, proxyRepos], 
+                        [COLOR_PRIMARY, COLOR_SECONDARY]);
+
+                    // Create storage chart
+                    if (charts.nexusStorageChart) charts.nexusStorageChart.destroy();
+                    createBarChart('nexusStorageChart', 
+                        ['Storage Used'], 
+                        [{
+                            label: 'Total Storage',
+                            data: [totalStorageBytes / (1024 * 1024 * 1024)], // Convert to GB
+                            backgroundColor: COLOR_INFO,
+                            borderColor: COLOR_INFO,
+                            borderWidth: 1
+                        }],
+                        {
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Storage Used: ${formatBytes(totalStorageBytes)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'GB'
+                                    }
+                                }
+                            }
+                        });
+
+                    // Render largest repositories
+                    const largestReposContainer = document.createElement('div');
+                    if (dashboardData.nexus.largestRepos.length > 0) {
+                        const table = document.createElement('table');
+                        table.className = 'table table-sm';
+                        
+                        const thead = document.createElement('thead');
+                        thead.innerHTML = `
+                            <tr>
+                                <th>Repository</th>
+                                <th>Type</th>
+                                <th>Format</th>
+                                <th>Size</th>
+                            </tr>
+                        `;
+                        table.appendChild(thead);
+                        
+                        const tbody = document.createElement('tbody');
+                        dashboardData.nexus.largestRepos.forEach(repo => {
+                            const row = document.createElement('tr');
+                            
+                            let typeBadge = '';
+                            if (repo.type === 'hosted') {
+                                typeBadge = '<span class="repo-badge repo-badge-hosted">Hosted</span>';
+                            } else if (repo.type === 'proxy') {
+                                typeBadge = '<span class="repo-badge repo-badge-proxy">Proxy</span>';
+                            }
+                            
+                            row.innerHTML = `
+                                <td>${repo.name}</td>
+                                <td>${typeBadge}</td>
+                                <td>${repo.format}</td>
+                                <td>${formatBytes(repo.size)}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        
+                        table.appendChild(tbody);
+                        largestReposContainer.appendChild(table);
+                    } else {
+                        largestReposContainer.innerHTML = '<p class="text-muted">No repository data available</p>';
+                    }
+                    
+                    // Skip updating the DOM for the removed table
+
+                } catch (error) {
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'alert alert-danger';
+                    errorElement.innerHTML = `<i class='bx bx-error-circle'></i> Failed to load Nexus data: ${error.message}. Check console for details.`;
+                    const nexusOverviewBody = document.getElementById('nexusOverviewBody');
+                    nexusOverviewBody.innerHTML = '';
+                    nexusOverviewBody.appendChild(errorElement);
+                    console.error('Error fetching Nexus dashboard data:', error);
+                    
+                    // Update status to show error
+                    document.getElementById('nexusHealthStatus').textContent = 'Connection error';
+                    document.getElementById('nexusHealthStatus').previousElementSibling.className = 'health-indicator health-red me-2';
+                    document.getElementById('nexusStatusBadge').className = 'tool-status status-critical';
+                    document.getElementById('nexusStatusBadge').textContent = 'Error';
+                }
+            }
+
+            // DockerHub data functions
+            async function fetchDockerHubData() {
+                const dockerhubOverviewBody = document.getElementById('dockerhubOverviewBody');
+                if (!dockerhubOverviewBody) return;
+
+                try {
+                    const data = await authFetch(`${DOCKERHUB_API_BASE}/repositories`);
+                    
+                    let totalRepos = 0;
+                    let privateRepos = 0;
+                    let publicRepos = 0;
+                    let popularImages = [];
+
+                    if (data && data.results) {
+                        totalRepos = data.count || data.results.length;
+                        privateRepos = data.results.filter(repo => repo.is_private).length;
+                        publicRepos = totalRepos - privateRepos;
+                        
+                        // Get pull counts for popular images
+                        popularImages = data.results.map(repo => ({
+                            name: repo.name,
+                            is_private: repo.is_private,
+                            pull_count: repo.pull_count || 0,
+                            star_count: repo.star_count || 0
+                        })).sort((a, b) => b.pull_count - a.pull_count).slice(0, 5);
+                    } else if (Array.isArray(data)) {
+                        totalRepos = data.length;
+                        privateRepos = data.filter(repo => repo.is_private).length;
+                        publicRepos = totalRepos - privateRepos;
+                        
+                        // Get pull counts for popular images
+                        popularImages = data.map(repo => ({
+                            name: repo.name,
+                            is_private: repo.is_private,
+                            pull_count: repo.pull_count || 0,
+                            star_count: repo.star_count || 0
+                        })).sort((a, b) => b.pull_count - a.pull_count).slice(0, 5);
+                    } else {
+                        console.warn('DockerHub repositories data is not in expected format:', data);
+                    }
+
+                    // Store data for later use
+                    dashboardData.dockerhub = {
+                        totalRepos,
+                        privateRepos,
+                        publicRepos,
+                        popularImages
+                    };
+
+                    // Update summary card
+                    document.getElementById('dockerhubReposTotal').textContent = totalRepos;
+                    
+                    // Update health status
+                    const healthStatus = document.getElementById('dockerhubHealthStatus');
+                    const statusBadge = document.getElementById('dockerhubStatusBadge');
+                    healthStatus.textContent = `${privateRepos} private, ${publicRepos} public`;
+                    healthStatus.previousElementSibling.className = 'health-indicator health-green me-2';
+                    statusBadge.className = 'tool-status status-healthy';
+                    statusBadge.textContent = 'Healthy';
+
+                    // Create mini chart for summary card
+                    if (charts.dockerhubMiniChart) charts.dockerhubMiniChart.destroy();
+                    createMiniChart('dockerhubMiniChart', 
+                        [privateRepos, publicRepos], 
+                        [COLOR_PRIMARY, COLOR_SECONDARY]);
+
+                    // Create repo type chart
+                    if (charts.dockerhubRepoTypeChart) charts.dockerhubRepoTypeChart.destroy();
+                    createPieChart('dockerhubRepoTypeChart', 
+                        ['Private Repositories', 'Public Repositories'], 
+                        [privateRepos, publicRepos], 
+                        [COLOR_PRIMARY, COLOR_SECONDARY]);
+
+                    // Create pull stats chart (mock data as DockerHub API might not provide historical pull data)
+                    if (charts.dockerhubPullStatsChart) charts.dockerhubPullStatsChart.destroy();
+                    const last7Days = Array.from({length: 7}, (_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - (6 - i));
+                        return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+                    });
+                    
+                    createLineChart('dockerhubPullStatsChart', 
+                        last7Days, 
+                        [{
+                            label: 'Image Pulls',
+                            data: Array.from({length: 7}, () => Math.floor(Math.random() * 1000) + 500), // Mock data
+                            backgroundColor: COLOR_INFO,
+                            borderColor: COLOR_INFO,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }]);
+
+                    // Render popular images
+                    const popularImagesContainer = document.createElement('div');
+                    if (dashboardData.dockerhub.popularImages.length > 0) {
+                        const table = document.createElement('table');
+                        table.className = 'table table-sm';
+                        
+                        const thead = document.createElement('thead');
+                        thead.innerHTML = `
+                            <tr>
+                                <th>Image</th>
+                                <th>Type</th>
+                                <th>Pulls</th>
+                                <th>Stars</th>
+                            </tr>
+                        `;
+                        table.appendChild(thead);
+                        
+                        const tbody = document.createElement('tbody');
+                        dashboardData.dockerhub.popularImages.forEach(image => {
+                            const row = document.createElement('tr');
+                            
+                            let typeBadge = '';
+                            if (image.is_private) {
+                                typeBadge = '<span class="repo-badge repo-badge-private">Private</span>';
+                            } else {
+                                typeBadge = '<span class="repo-badge repo-badge-public">Public</span>';
+                            }
+                            
+                            row.innerHTML = `
+                                <td>${image.name}</td>
+                                <td>${typeBadge}</td>
+                                <td>${image.pull_count.toLocaleString()}</td>
+                                <td>${image.star_count.toLocaleString()}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        
+                        table.appendChild(tbody);
+                        popularImagesContainer.appendChild(table);
+                    } else {
+                        popularImagesContainer.innerHTML = '<p class="text-muted">No image data available</p>';
+                    }
+                    
+                    // Skip updating the DOM for the removed table
+
+                } catch (error) {
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'alert alert-danger';
+                    errorElement.innerHTML = `<i class='bx bx-error-circle'></i> Failed to load DockerHub data: ${error.message}. Check console for details.`;
+                    const dockerhubOverviewBody = document.getElementById('dockerhubOverviewBody');
+                    dockerhubOverviewBody.innerHTML = '';
+                    dockerhubOverviewBody.appendChild(errorElement);
+                    console.error('Error fetching DockerHub dashboard data:', error);
+                    
+                    // Update status to show error
+                    document.getElementById('dockerhubHealthStatus').textContent = 'Connection error';
+                    document.getElementById('dockerhubHealthStatus').previousElementSibling.className = 'health-indicator health-red me-2';
+                    document.getElementById('dockerhubStatusBadge').className = 'tool-status status-critical';
+                    document.getElementById('dockerhubStatusBadge').textContent = 'Error';
+                }
+            }
+
+            // Initialize all data
+            await refreshAllData();
+            updateLastUpdated();
+            
+            // Set up auto-refresh every 5 minutes
+            setInterval(async () => {
+                await refreshAllData();
+                updateLastUpdated();
+            }, 5 * 60 * 1000);
+        });
+    </script>
+</body>
+</html>

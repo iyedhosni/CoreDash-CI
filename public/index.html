@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3S | Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Removed toast notification styles as per suggestion */
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        dark: {
+                            800: '#1a1a2e',
+                            900: '#16213e',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-in': 'slideIn 0.3s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 2s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+  /* Base text colors */
+  body {
+    color: #1f2937; /* gray-800 */
+  }
+  .dark body {
+    color: #e5e7eb; /* gray-200 */
+  }
+
+  /* Sidebar text */
+  .sidebar,
+  .sidebar-header,
+  .sidebar-footer {
+    color: white;
+  }
+  .dark .sidebar,
+  .dark .sidebar-header,
+  .dark .sidebar-footer {
+    color: #e5e7eb; /* gray-200 */
+  }
+
+  /* Buttons */
+  .toggle-btn {
+    color: #374151; /* gray-700 */
+  }
+  .dark .toggle-btn {
+    color: #e5e7eb; /* gray-200 */
+  }
+  .toggle-btn:hover {
+    background-color: #e5e7eb; /* gray-200 */
+    color: #111827; /* gray-900 */
+  }
+  .dark .toggle-btn:hover {
+    background-color: #374151; /* gray-700 */
+    color: white;
+  }
+
+ 
+
+  /* Notifications */
+  .notification-item {
+    color: #111827; /* gray-800 */
+  }
+  .dark .notification-item {
+    color: #e5e7eb; /* gray-200 */
+  }
+  .notification-item:hover {
+    background-color: #f3f4f6; /* gray-100 */
+  }
+  .dark .notification-item:hover {
+    background-color: #374151; /* gray-700 */
+  }
+ /* User name text */
+  .user-name {
+    color: #111827; /* gray-900 for light mode */
+  }
+  .dark .user-name {
+    color: white; /* white for dark mode */
+  }
+
+  /* If you're using glass effect on the header, add this too */
+  .glass .user-name {
+    color: #111827; /* gray-900 */
+  }
+  .dark .glass-dark .user-name {
+    color: white;
+  }
+ 
+</style>
+    
+    <link rel="stylesheet" href="assets/css/index.css">
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script type="module">
+        import { initSocket } from '/assets/js/socket.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const contentFrame = document.getElementById('content-frame');
+            const userString = localStorage.getItem('user');
+            let parsedUser = null;
+
+            if (userString && userString !== 'null' && userString !== 'undefined') {
+                try {
+                    parsedUser = JSON.parse(userString);
+                } catch (e) {
+                    console.error("Error parsing user data from localStorage:", e);
+                    // parsedUser remains null, will default to {} for user object
+                }
+            }
+
+            // Ensure 'user' is always an object, defaulting to {} if parsing failed, 
+            // or if userString was null/undefined/empty, or if parsedUser is null (e.g. from JSON.parse('null')).
+            const user = (parsedUser && typeof parsedUser === 'object') ? parsedUser : {};
+
+            // Check if contentFrame exists to prevent errors if HTML structure changes
+            if (!contentFrame) {
+                console.error('Critical error: Main content iframe #content-frame not found.');
+                return; // Stop execution if iframe is missing
+            }
+
+            // User authentication check (e.g., presence of a token or user ID)
+            // Assumes 'user.token' indicates a valid session.
+            if (user.id) { 
+                if (user.role) {
+                    initSocket(user.role); // Initialize socket for authenticated users with a role
+
+                    let dashboardUrl = 'dashboard_content.html'; // Default dashboard
+
+                    // Normalize role string for comparison
+                    const userRole = String(user.role).toLowerCase().trim();
+
+                    switch (userRole) {
+                        case 'admin':
+                            dashboardUrl = 'admin-dashboard.html';
+                            break;
+                        case 'developer': // Standardized spelling
+                        case 'developpeur': // Corrected spelling to match 'developpeur'
+                            dashboardUrl = 'developer_dashboard.html';
+                            break;
+                        case 'profitionel_devops': // User's specified spelling
+                        case 'professional_devops': // A more standard variant
+                            dashboardUrl = 'devops_dashboard.html';
+                            break;
+                        case 'superviseur':
+                            dashboardUrl = 'supervisor_dashboard.html'; // Updated to new supervisor dashboard
+                            break;
+                        default:
+                            console.warn(`Unknown or unhandled user role: '${user.role}'. Loading default dashboard.`);
+                            // dashboardUrl remains 'dashboard_content.html' (the default)
+                    }
+                    contentFrame.src = dashboardUrl;
+                } else {
+                    // User is authenticated (e.g., token exists) but role is missing
+                    console.warn('User is authenticated, but role is missing. Loading login page.');
+                    window.location.replace('login.html'); // Or a page indicating an issue with the user profile
+                }
+            } else {
+                // User is not authenticated (no token or user object is empty/invalid)
+                console.log('User not authenticated. Redirecting to login page.');
+                window.location.replace('login.html');
+            }
+        });
+    </script>
+</head>
+
+<body class="dark:bg-gray-900">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            
+                <img src="assets/img/icons/logo.png" alt="3s Logo" class="h-8 w-auto" />
+                
+           
+        </div>
+        
+        <div class="sidebar-menu">
+            <ul class="menu" id="menu-container">
+                <!-- Menu will be generated by JavaScript -->
+            </ul>
+        </div>
+        
+        <div class="sidebar-footer">
+          <div class="user-card flex items-center space-x-3">
+            <div class="user-avatar">
+              <span id="sidebar-avatar">A</span>
+            </div>
+            <div>
+              <div id="sidebar-name" class="text-sm font-medium text-white">Admin User</div>
+              <div id="sidebar-email" class="text-xs text-gray-300">admin@thesisflow.com</div>
+            </div>
+          </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header glass dark:glass-dark">
+            <div class="flex items-center space-x-4">
+                <button id="menu-toggle" class="toggle-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="breadcrumb">
+                    <div class="breadcrumb-item">
+                        <a href="#" class="breadcrumb-link">Home</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium hidden sm:inline">Notifications</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="notification-toggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+                
+                <button class="toggle-btn" id="theme-toggle">
+                    <i class="fas fa-moon dark:hidden"></i>
+                    <i class="fas fa-sun hidden dark:block"></i>
+                </button>
+                
+                <div class="notification-dropdown-trigger relative">
+                    <button class="toggle-btn relative">
+                        <i class="fas fa-bell"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">0</span>
+                    </button>
+                    <div class="notification-dropdown">
+                        <div class="notification-header">
+                            <h3 class="notification-title">Notifications</h3>
+                            <span class="notification-clear">Clear All</span>
+                        </div>
+                        
+                       
+                       
+                    </div>
+                </div>
+                
+                <div class="user-dropdown">
+                    <button class="user-btn">
+                        <div class="user-avatar">
+                            <span id="header-avatar">A</span>
+                        </div>
+                        <span id="header-name" class="user-name hidden md:inline">Admin</span>
+                    </button>
+                    <div class="dropdown-menu glass dark:glass-dark">
+                        
+                        <a href="settings.html" id="settings-link" class="dropdown-item menu-link" target="content-frame" data-breadcrumb="System Settings">
+                            <i class="menu-icon fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a id="logout-btn" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt w-5"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Content -->
+        <div class="content-container">
+            <div class="iframe-container">
+                <iframe id="content-frame" name="content-frame" src="dashboard_content.html" frameborder="0" style="margin-top: 1rem;"></iframe>
+            </div>
+        </div>
+          <!-- Removed the toast element as per suggestion -->
+    </main>
+    <!-- Add this audio element for the notification sound -->
+    <audio id="notification-sound" src="assets/sounds/notification.mp3" preload="auto"></audio>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const settingsLink = document.getElementById('settings-link');
+        const settingsContainer = document.getElementById('settings-container');
+        const settingsIframe = document.getElementById('settings-iframe');
+        const closeSettings = document.getElementById('close-settings');
+
+        if (settingsLink && settingsContainer && settingsIframe) {
+            settingsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsIframe.src = 'settings.html';
+                settingsContainer.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
+            });
+
+            closeSettings.addEventListener('click', () => {
+                settingsContainer.classList.add('hidden');
+                settingsIframe.src = 'about:blank';
+                document.body.style.overflow = ''; // Re-enable scrolling
+            });
+
+            // Close when clicking outside the modal
+            settingsContainer.addEventListener('click', (e) => {
+                if (e.target === settingsContainer) {
+                    settingsContainer.classList.add('hidden');
+                    settingsIframe.src = 'about:blank';
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // Listen for messages from the iframe (e.g., when settings are saved)
+            window.addEventListener('message', (event) => {
+                if (event.data === 'settingsSaved') {
+                    settingsContainer.classList.add('hidden');
+                    settingsIframe.src = 'about:blank';
+                    document.body.style.overflow = '';
+                }
+            }, false);
+        }
+    });
+    </script>
+    <script src="assets/js/main.js"></script> <!-- Added main.js for dynamic menu and other shared JS -->
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!user.id) return;
+    document.getElementById('sidebar-name').textContent = user.firstName + ' ' + user.lastName;
+document.getElementById('header-name').textContent =  user.firstName;
+document.getElementById('sidebar-email').textContent = user.email;
+
+  const notificationSound = document.getElementById('notification-sound');
+  let isAudioAllowed = false;
+
+  // Enable audio playback after user interaction
+  document.addEventListener('click', () => {
+    isAudioAllowed = true;
+  });
+
+  // Function to play notification sound
+  function playNotificationSound() {
+    if (!notificationSound) {
+      console.warn('Notification sound element not found');
+      return;
+    }
+    
+    // Reset and play the sound
+    notificationSound.currentTime = 0;
+    const playPromise = notificationSound.play();
+    
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        console.log('Audio play failed, attempting to enable audio...', error);
+        // Try to enable audio by playing a silent sound
+        const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQ=');
+        silentAudio.volume = 0;
+        silentAudio.play()
+          .then(() => {
+            isAudioAllowed = true;
+            notificationSound.play().catch(e => console.error('Still cannot play sound:', e));
+          })
+          .catch(e => console.error('Cannot enable audio:', e));
+      });
+    }
+  }
+
+  const dropdown = document.querySelector('.notification-dropdown');
+  const header = dropdown?.querySelector('.notification-header');
+  const badge = document.querySelector('.notification-dropdown-trigger .toggle-btn span');
+  const receivedNotificationIds = new Set(); // Track received notification IDs
+
+  // Function to update the notification badge
+  function updateBadge(count) {
+    if (!badge) {
+      console.warn('Badge element not found');
+      return;
+    }
+    
+    const numCount = parseInt(count, 10) || 0;
+    console.log('Updating badge count to:', numCount);
+    
+    // Update badge text and visibility
+    badge.textContent = numCount > 0 ? (numCount > 99 ? '99+' : numCount.toString()) : '';
+    badge.style.display = numCount > 0 ? 'flex' : 'none';
+  }
+
+  // Function to load and display saved notifications
+  async function loadSavedNotifications() {
+    try {
+      console.log('Loading notifications for user:', user.id);
+      const response = await fetch(`http://localhost:3000/api/notifications/${user.id}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Fetched notifications:', data);
+
+      // Clear existing notifications
+      const notificationItems = dropdown.querySelectorAll('.notification-item.real');
+      notificationItems.forEach(el => el.remove());
+
+      // Count unread notifications
+      const unreadCount = data.filter(n => !n.is_read).length;
+      const fragment = document.createDocumentFragment();
+
+      // Process notifications (assuming data is newest first from server)
+      data.forEach(item => {
+        const notification = {
+          id: item.id,
+          title: item.Notification?.title || 'Notification',
+          message: item.Notification?.message || 'No message available',
+          created_at: item.created_at,
+          is_read: item.is_read,
+          type: item.Notification?.type || 'info'
+        };
+        
+        // Add to received notifications set to prevent duplicates
+        receivedNotificationIds.add(notification.id.toString());
+
+        const div = document.createElement('div');
+        div.className = `notification-item ${notification.is_read ? '' : 'unread'} real`;
+        div.innerHTML = `
+          <div class="notification-content">
+            <div class="notification-icon ${getNotificationIconClass(notification.type)}">
+              <i class="${getNotificationIcon(notification.type)}"></i>
+            </div>
+            <div>
+              <p class="notification-text">${notification.title}: ${notification.message}</p>
+              <p class="notification-time">${formatNotificationTime(notification.created_at)}</p>
+            </div>
+          </div>
+        `;
+
+        // Add click handler to mark as read
+        div.addEventListener('click', async () => {
+          if (div.classList.contains('unread')) {
+            div.classList.remove('unread');
+            unreadCount--;
+            updateBadge(unreadCount);
+            
+            // Mark as read in the backend
+            try {
+              await fetch(`http://localhost:3000/api/notifications/${notification.id}/read`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                }
+              });
+            } catch (error) {
+              console.error('Error marking notification as read:', error);
+            }
+          }
+        });
+
+        fragment.appendChild(div);
+      });
+
+      // Add all notifications to dropdown
+      if (header && header.nextSibling) {
+        dropdown.insertBefore(fragment, header.nextSibling);
+      } else {
+        dropdown.appendChild(fragment);
+      }
+      
+      // Update badge with the count of unread notifications from the database
+      updateBadge(unreadCount); 
+      console.log('Loaded notifications. Unread count:', unreadCount);
+      
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    }
+  }
+
+  // Function to handle real-time notifications via Socket.io
+  function setupSocketNotifications() {
+    console.log('🔌 Setting up socket notifications...');
+    
+    // Don't proceed if notifications are disabled
+    if (!window.notificationsEnabled) {
+      console.log('🔕 Notifications are disabled, not setting up socket');
+      return;
+    }
+    
+    // Get the server URL from environment or use default
+    const serverUrl = window.ENV?.BACKEND_URL || 'http://localhost:3000';
+    console.log('🔌 Connecting to socket server at:', serverUrl);
+    
+    // Disconnect any existing socket
+    if (window.socket) {
+      window.socket.disconnect();
+      window.socket = null;
+    }
+    
+    const socket = io(serverUrl, {
+      withCredentials: true,
+      reconnection: window.notificationsEnabled, // Only reconnect if notifications are enabled
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      autoConnect: window.notificationsEnabled, // Only auto-connect if notifications are enabled
+      transports: ['websocket', 'polling']
+    });
+    
+    // Debug socket events
+    socket.on('connect', () => {
+      console.log('✅ Socket connected with ID:', socket.id);
+      if (!window.notificationsEnabled) {
+        console.log('🔕 Notifications are disabled, disconnecting socket');
+        socket.disconnect();
+        return;
+      }
+      
+      console.log('🔑 Authenticating with role:', user.role);
+      
+      // First authenticate
+      socket.emit('authenticate', { 
+        userId: user.id, 
+        role: user.role 
+      });
+      
+      // Then join the role room
+      console.log('🚀 Joining role room:', user.role);
+      socket.emit('join', { role: user.role });
+    });
+    
+    socket.on('disconnect', (reason) => {
+      console.warn('❌ Socket disconnected:', reason);
+    });
+    
+    socket.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error);
+    });
+    
+    socket.on('authentication_success', (data) => {
+      console.log('🔓 Authentication successful:', data);
+    });
+
+    // Handle incoming notifications
+    socket.off('notification'); // Remove any existing listener to prevent duplicates
+    socket.on('notification', (data) => {
+      // Double-check notifications are enabled before processing
+      if (!window.notificationsEnabled) {
+        console.log('🔕 Notification received but notifications are disabled');
+        return;
+      }
+      
+      console.log('🔔 Raw notification data:', data);
+      
+      // Check if we've already processed this notification
+      if (receivedNotificationIds.has(data.id)) {
+        console.log('Skipping duplicate notification:', data.id);
+        return;
+      }
+      
+      // Add to received notifications
+      receivedNotificationIds.add(data.id);
+      
+      // Play notification sound
+      playNotificationSound();
+
+      // Get current count and increment
+      const currentCount = parseInt(badge?.textContent || '0', 10) || 0;
+      const newCount = currentCount + 1;
+      
+      // Update badge count
+      updateBadge(newCount);
+      console.log('New notification received, updated count to:', newCount);
+
+      // Create new notification element
+      const item = document.createElement('div');
+      item.className = 'notification-item unread real';
+      item.innerHTML = `
+        <div class="notification-content">
+          <div class="notification-icon ${getNotificationIconClass(data.type || 'info')}">
+            <i class="${getNotificationIcon(data.type || 'info')}"></i>
+          </div>
+          <div>
+            <p class="notification-text">${data.title}: ${data.message}</p>
+            <p class="notification-time">Just now</p>
+          </div>
+        </div>
+      `;
+
+      // Add click handler to mark as read
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (item.classList.contains('unread')) {
+          item.classList.remove('unread');
+          const currentBadgeCount = parseInt(badge?.textContent || '0', 10) || 0;
+          updateBadge(Math.max(0, currentBadgeCount - 1));
+        }
+      });
+
+      // Insert at the very top (after header)
+      const firstNotification = dropdown.querySelector('.notification-item.real');
+      if (firstNotification) {
+        dropdown.insertBefore(item, firstNotification);
+      } else if (header && header.nextSibling) {
+        dropdown.insertBefore(item, header.nextSibling);
+      } else {
+        dropdown.appendChild(item);
+      }
+    });
+
+    window.socket = socket;
+  }
+
+  // Rest of your existing helper functions remain the same...
+  // Get appropriate icon for notification type
+  function getNotificationIcon(type) {
+    switch(type.toLowerCase()) {
+      case 'error': return 'fas fa-exclamation-circle';
+      case 'warning': return 'fas fa-exclamation-triangle';
+      case 'success': return 'fas fa-check-circle';
+      case 'info':
+      default: return 'fas fa-info-circle';
+    }
+  }
+
+  // Get icon background class for notification type
+  function getNotificationIconClass(type) {
+    switch(type.toLowerCase()) {
+      case 'error': return 'bg-error';
+      case 'warning': return 'bg-warning';
+      case 'success': return 'bg-success';
+      case 'info':
+      default: return 'bg-info';
+    }
+  }
+
+  // Format notification time (e.g., "2 minutes ago")
+  function formatNotificationTime(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    return date.toLocaleDateString();
+  }
+
+  // Clear all notifications (UI only)
+  // Clear all notifications (mark all as read)
+async function clearAllNotifications() {
+  try {
+    // Call the API to mark all notifications as read
+    const response = await fetch(`http://localhost:3000/api/notifications/${user.id}/mark-all-read`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to mark all notifications as read');
+    }
+
+    // Update the UI
+    dropdown.querySelectorAll('.notification-item.unread').forEach(item => {
+      item.classList.remove('unread');
+    });
+    
+    // Update the badge count to zero
+    if (badge){
+      badge.textContent = '';
+      badge.style.display = 'none';
+    } 
+    
+    // Show success message
+    // showToast('All notifications marked as read', 'success');
+  } catch (err) {
+    console.error('Failed to clear all notifications:', err);
+    // showToast('Failed to mark notifications as read', 'error');
+  }
+}
+
+  // Add event listener to "Clear All" button
+  document.querySelector('.notification-clear')?.addEventListener('click', clearAllNotifications);
+
+  // Store notification state globally
+  window.notificationsEnabled = true;
+  
+  // Store the original functions we'll be overriding
+  const originalPlaySound = playNotificationSound;
+  const originalSetupSocket = setupSocketNotifications;
+  
+  // Completely override the notification functions
+  playNotificationSound = function() {
+    if (!window.notificationsEnabled) {
+      console.log('🔕 Notification sound blocked');
+      return;
+    }
+    originalPlaySound();
+  };
+
+  // Completely disable socket notifications when disabled
+  setupSocketNotifications = function() {
+    if (!window.notificationsEnabled) {
+      console.log('🔕 Socket notifications are disabled');
+      // Ensure any existing socket is disconnected
+      if (window.socket) {
+        window.socket.disconnect();
+        window.socket = null;
+      }
+      return;
+    }
+    
+    // Only proceed with original setup if notifications are enabled
+    originalSetupSocket();
+  };
+
+  // Update the loadNotificationPreference function
+  function loadNotificationPreference() {
+      const savedPreference = localStorage.getItem('notificationsEnabled');
+      const notificationToggle = document.getElementById('notification-toggle');
+      
+      // Default to true if no preference is set
+      const isEnabled = savedPreference === null || savedPreference === 'true';
+      window.notificationsEnabled = isEnabled;
+      
+      // Make sure the toggle is properly set
+      if (notificationToggle) {
+          notificationToggle.checked = isEnabled;
+          
+          // Manually trigger the change event to set up the initial state
+          if (isEnabled) {
+              if (typeof setupSocketNotifications === 'function') {
+                  setupSocketNotifications();
+              }
+              loadSavedNotifications();
+          } else {
+              // Clean up any existing notifications
+              const notificationItems = document.querySelectorAll('.notification-item.real');
+              notificationItems.forEach(item => item.remove());
+              updateBadge(0);
+          }
+      }
+  }
+
+  // Toggle notification preference
+  const notificationToggle = document.getElementById('notification-toggle');
+  if (notificationToggle) {
+    notificationToggle.addEventListener('change', (e) => {
+      const isEnabled = e.target.checked;
+      window.notificationsEnabled = isEnabled;
+      localStorage.setItem('notificationsEnabled', isEnabled);
+      
+      if (isEnabled) {
+        // Re-initialize notifications
+        if (typeof setupSocketNotifications === 'function') {
+          setupSocketNotifications();
+        }
+        loadSavedNotifications();
+        showToast('Notifications enabled', 'success');
+      } else {
+        // Clean up
+        if (window.socket) {
+          window.socket.disconnect();
+          window.socket = null;
+        }
+        // Clear any existing notifications
+        const notificationItems = document.querySelectorAll('.notification-item.real');
+        notificationItems.forEach(item => item.remove());
+        updateBadge(0);
+        
+        // Ensure all notification sounds are stopped
+        const audio = document.getElementById('notification-sound');
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+        showToast('Notifications disabled', 'info');
+      }
+    });
+  }
+
+  // Load initial notification preference
+  loadNotificationPreference();
+  
+  const sidebarAvatar = document.getElementById('sidebar-avatar');
+    if (sidebarAvatar && user.firstName) {
+        sidebarAvatar.textContent = user.firstName.charAt(0).toUpperCase();
+    }
+
+    const headerName = document.getElementById('header-name');
+    if (headerName) {
+      // Use firstName for header, fallback to lastName, then 'User'
+      headerName.textContent = user.firstName || user.lastName || 'User';
+    }
+
+    const headerAvatar = document.getElementById('header-avatar');
+    if (headerAvatar) {
+      if (user.firstName && user.firstName.length > 0) {
+        headerAvatar.textContent = user.firstName.charAt(0).toUpperCase();
+      } else if (user.lastName && user.lastName.length > 0) {
+        headerAvatar.textContent = user.lastName.charAt(0).toUpperCase();
+      } else {
+        headerAvatar.textContent = 'U'; // Default initial if no names
+      }
+    }
+    
+    document.getElementById('user-avatar-button').addEventListener('click', () => {
+    });
+});
+</script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="assets/js/index.js"></script>
+
+</body>
+</html>

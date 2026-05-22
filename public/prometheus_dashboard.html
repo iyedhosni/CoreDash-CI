@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>Grafana via Backend</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f7fa;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dashboard-container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            transition: color 0.3s ease;
+        }
+        .loading, .error {
+            padding: 40px 20px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background: white;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .error {
+            color: #e74c3c;
+            border-left: 4px solid #e74c3c;
+        }
+        .dashboard-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .dashboard-row {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+        .dashboard-panel {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+        .dashboard-panel-full {
+            width: 100%;
+        }
+        .dashboard-panel-half {
+            width: calc(50% - 10px);
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white; /* Default background */
+            transition: background-color 0.3s ease;
+        }
+
+        /* Dark mode styles */
+        body.dark {
+          background-color: #0f172a; /* Dark background for body */
+          color: #e2e8f0; /* Light text for dark mode */
+        }
+        .dark .dashboard-header {
+          background: #1e293b; /* Darker background for header */
+          color: #e2e8f0;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .dark .dashboard-title {
+            color: #e2e8f0; /* Ensure title text is light */
+        }
+        .dark .dashboard-panel {
+          background: #1e293b; /* Darker background for panels */
+          box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .dark .loading, .dark .error {
+          background: #1e293b; /* Darker background for loading/error states */
+          color: #e2e8f0;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .dark .error {
+            border-left-color: #e74c3c; 
+        }
+        .dark iframe {
+            background: #1e293b; /* Match panel background for consistency */
+        }
+        .theme-toggle {
+            background: none;
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-left: 10px;
+            color: #333;
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        .dark .theme-toggle {
+            color: #e2e8f0;
+            border-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="dashboard-title">Prometheus Monitoring Dashboard</div>
+            <div> <!-- Wrapper for buttons -->
+                <button class="theme-toggle" id="themeToggle">&#9798;</button>
+            </div>
+        </div>
+        <div id="dashboard">
+            <div class="loading">
+                <h2>Loading Prometheus dashboards...</h2>
+                <p>Please wait while we load your metrics.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTheme = 'light';
+
+        // Function to sync theme with parent and update iframes
+        function syncTheme() {
+            try {
+                const update = () => {
+                    let isDark = false;
+                    if (window.parent !== window) {
+                        try {
+                            isDark = window.parent.document.documentElement.classList.contains('dark');
+                        } catch (e) {
+                            console.warn('Could not access parent theme due to CORS, using local theme');
+                            isDark = localStorage.getItem('theme') === 'dark' || 
+                                     (!localStorage.getItem('theme') && 
+                                      window.matchMedia('(prefers-color-scheme: dark)').matches);
+                        }
+                    } else {
+                        isDark = localStorage.getItem('theme') === 'dark' || 
+                                 (!localStorage.getItem('theme') && 
+                                  window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    }
+
+                    currentTheme = isDark ? 'dark' : 'light';
+                    document.documentElement.setAttribute('data-theme', currentTheme);
+                    if (isDark) {
+                        document.body.classList.add('dark');
+                    } else {
+                        document.body.classList.remove('dark');
+                    }
+
+                    const iframes = document.querySelectorAll('#dashboard iframe');
+                    iframes.forEach(iframe => {
+                        try {
+                            let src = iframe.src;
+                            if (src.includes('theme=')) {
+                                src = src.replace(/theme=(light|dark)/, `theme=${currentTheme}`);
+                            } else {
+                                src += (src.includes('?') ? '&' : '?') + `theme=${currentTheme}`;
+                            }
+                            if (iframe.src !== src) {
+                                iframe.src = src;
+                            }
+                        } catch (e) {
+                            console.warn('Error updating iframe theme:', e, iframe);
+                        }
+                    });
+                };
+
+                update(); // Initial update
+
+                if (window.parent !== window) {
+                    try {
+                        const observer = new MutationObserver(update);
+                        observer.observe(window.parent.document.documentElement, {
+                            attributes: true,
+                            attributeFilter: ['class', 'data-theme'] 
+                        });
+                    } catch (e) {
+                        console.warn('Could not observe parent theme changes due to CORS.');
+                    }
+                }
+            } catch (error) {
+                console.error('Error in syncTheme:', error);
+            }
+        }
+
+        // Theme toggle button listener
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                syncTheme(); // Re-sync to apply changes and update iframes
+            });
+        }
+
+        // Initial theme sync on load
+        syncTheme();
+
+        // Function to load Grafana URL from the API
+        async function loadGrafanaUrl() {
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    throw new Error('Authentication required. Please log in again.');
+                }
+
+                const apiBaseUrl = window.ENV?.BACKEND_URL || 'http://localhost:3000';
+                const response = await fetch(`${apiBaseUrl}/api/grafana-url/url`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include' // Include cookies if needed
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Token might be expired, try to refresh it if refresh token is available
+                        const refreshToken = localStorage.getItem('refreshToken');
+                        if (refreshToken) {
+                            try {
+                                const refreshResponse = await fetch('/api/auth/refresh-token', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${refreshToken}`
+                                    }
+                                });
+                                
+                                if (refreshResponse.ok) {
+                                    const { accessToken: newToken } = await refreshResponse.json();
+                                    localStorage.setItem('accessToken', newToken);
+                                    // Retry the original request with the new token
+                                    return loadGrafanaUrl();
+                                }
+                            } catch (refreshError) {
+                                console.error('Error refreshing token:', refreshError);
+                                // If refresh fails, redirect to login
+                                window.location.href = '/login.html';
+                                throw new Error('Session expired. Please log in again.');
+                            }
+                        } else {
+                            // No refresh token available, redirect to login
+                            window.location.href = '/login.html';
+                            throw new Error('Session expired. Please log in again.');
+                        }
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `Failed to load Grafana URL: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.url) {
+                    throw new Error('Grafana URL not configured');
+                }
+                
+                return data.url;
+            } catch (error) {
+                console.error('Error loading Grafana URL:', error);
+                if (error.message.includes('Session expired') || error.message.includes('Authentication required')) {
+                    // Redirect to login if not already on login page
+                    if (!window.location.pathname.endsWith('login.html')) {
+                        window.location.href = '/login.html';
+                    }
+                }
+                throw error;
+            }
+        }
+
+        // Function to update iframe sources with the Grafana URL
+        function updateIframeSources(grafanaUrl) {
+            const dashboardContainer = document.getElementById('dashboard');
+            // Theme is now set to currentTheme by syncTheme, but we can keep a default here
+            // or ensure syncTheme is called after iframes are added.
+            const initialThemeForNewUrl = document.documentElement.getAttribute('data-theme') || 'light';
+            dashboardContainer.innerHTML = `
+                <div class="dashboard-grid">
+                    <!-- Full width panel -->
+                    <div class="dashboard-panel dashboard-panel-full" style="height: 350px;">
+                            <iframe 
+                                src="${grafanaUrl}/d-solo/52b191b4-39b0-4ba0-8851-0aef27700504/prometheus-overview?orgId=1&timezone=utc&var-datasource=default&var-cluster=$__all&var-job=$__all&var-instance=$__all&theme=${initialThemeForNewUrl}&panelId=2&__feature.dashboardSceneSolo"
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                    
+                    <!-- Two column panels -->
+                    <div class="dashboard-row">
+                        <div class="dashboard-panel dashboard-panel-half" style="height: 350px;">
+                            <iframe 
+                                src="${grafanaUrl}/d-solo/52b191b4-39b0-4ba0-8851-0aef27700504/prometheus-overview?orgId=1&timezone=utc&var-datasource=default&var-cluster=$__all&var-job=$__all&var-instance=$__all&theme=${initialThemeForNewUrl}&panelId=7&__feature.dashboardSceneSolo"
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                        <div class="dashboard-panel dashboard-panel-half" style="height: 350px;">
+                            <iframe 
+                                src="${grafanaUrl}/d-solo/52b191b4-39b0-4ba0-8851-0aef27700504/prometheus-overview?orgId=1&timezone=utc&var-datasource=default&var-cluster=$__all&var-job=$__all&var-instance=$__all&theme=${initialThemeForNewUrl}&panelId=12&__feature.dashboardSceneSolo"
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                    </div>
+                    
+                    <!-- Two column panels -->
+                    <div class="dashboard-row">
+                        <div class="dashboard-panel dashboard-panel-half" style="height: 350px;">
+                            <iframe 
+                                src="${grafanaUrl}/d-solo/52b191b4-39b0-4ba0-8851-0aef27700504/prometheus-overview?orgId=1&timezone=utc&var-datasource=default&var-cluster=$__all&var-job=$__all&var-instance=$__all&theme=${initialThemeForNewUrl}&panelId=8&__feature.dashboardSceneSolo"
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                        <div class="dashboard-panel dashboard-panel-half" style="height: 350px;">
+                            <iframe 
+                                src="${grafanaUrl}/d-solo/52b191b4-39b0-4ba0-8851-0aef27700504/prometheus-overview?orgId=1&timezone=utc&var-datasource=default&var-cluster=$__all&var-job=$__all&var-instance=$__all&theme=${initialThemeForNewUrl}&panelId=15&__feature.dashboardSceneSolo"
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // After new iframes are added to the DOM, re-sync the theme to ensure they have the correct theme parameter
+            syncTheme(); 
+        }
+
+        // Initialize the dashboard
+        async function initDashboard() {
+            const dashboardDiv = document.getElementById('dashboard');
+            try {
+                const grafanaUrl = await loadGrafanaUrl();
+                updateIframeSources(grafanaUrl); // This now calls syncTheme() internally at the end
+                // syncTheme(); // No longer strictly needed here if updateIframeSources calls it, but harmless for safety.
+            } catch (error) {
+                console.error('Failed to initialize dashboard:', error);
+                let errorMessage = 'Failed to load dashboard. Please try again later.';
+                if (error.message.includes('Authentication required') || error.message.includes('Session expired')) {
+                    errorMessage = 'Your session has expired. Please <a href="/login.html">log in again</a>.';
+                } else if (error.message.includes('Grafana URL not configured')) {
+                    errorMessage = 'Grafana integration is not configured. Please contact support.';
+                }
+                dashboardDiv.innerHTML = `<div class="error"><h2>Error</h2><p>${errorMessage}</p></div>`;
+                // Ensure theme is applied even to error message
+                document.body.classList.toggle('dark', document.documentElement.getAttribute('data-theme') === 'dark');
+            }
+        }
+
+        // Start the dashboard when the page loads
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>
